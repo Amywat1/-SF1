@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "header.h": "c"
+    },
+
+    "search.exclude": {        
+        "**/Listings": true,
+        "**/Objects": true,
+    },
+
+    "files.exclude": {
+        "**/Listings": true,
+        "**/Objects": true,
+        "**/*.uvgui.huwangwei": true,
+        "**/USER/*.uvopt": true,
+        "**/USER/*.uvproj": true,
+        "**/USER/*.cfg": true
+    }
+}
