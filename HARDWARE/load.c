@@ -103,21 +103,22 @@ unsigned int code SteamBakeRegionHeat_Table[21]=
 };
 
 
-///*-----------------------------------------------------------------------------
-//Description:		初始化负载IO（控制板的负载只有散热风扇）预留
-//					散热：P3.7
-//Input:				void
-//Return:				void
-//History:			无
-//-----------------------------------------------------------------------------*/
-//void InitLoadIo(void)
-//{
-//	BANK0_SET;
-//	
-//	P3CR |= BIT7;											//输出，不带上拉，输出低
-//	P3PCR &= (~BIT7);
-//	P3 &= (~BIT7);
-//}
+/*-----------------------------------------------------------------------------
+Description:		初始化负载IO（控制板的负载只有散热风扇）预留
+					LED灯：			P2.4
+					摄像头风扇：	P2.5
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void InitLoadIo(void)
+{
+	BANK0_SET;
+	
+	P2CR |= (BIT4 | BIT5);											//输出，不带上拉，输出低
+	P2PCR &= (~(BIT4 | BIT5));
+	P2 &= (~(BIT4 | BIT5));
+}
 
 /*-----------------------------------------------------------------------------
 Description:		初始化负载变量
@@ -1373,6 +1374,17 @@ void LoadCrl(void)
 	if(g_coolingFanDealyFlag)									//若散热风扇延时关闭中
 	{
 		sanReOpenFlag = OPEN_LOAD;								//开启电源板散热风扇
+	}
+
+	if(g_sysType == SysModeWork)								//工作状态下，开LED灯和摄像头散热风扇
+	{
+		P_CAMERA_FAN = 1;
+		P_CAMERA_LED = 1;
+	}
+	else
+	{
+		P_CAMERA_FAN = 0;
+		P_CAMERA_LED = 0;
 	}
 
 	/*赋值负载相关的发送信息*/

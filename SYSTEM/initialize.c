@@ -42,8 +42,8 @@ void InitIo(void)
 	P4CR = 0xFF;
 	
 	/*掉电检测AD口上电就做输入*/
-	P3CR &= ~(BIT7);
-	P3CR |= (BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 |BIT6);
+	P2CR &= ~(BIT6);
+	P2CR |= (BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT7);
 	
 	/*端口无上拉*/
 	P0PCR = 0;
@@ -70,6 +70,7 @@ void InitIo(void)
 	InitDispIo();									//显示相关IO
 	InitTouchKeyIo();								//触摸按键引脚IO
 	InitMeasureIo();								//信号检测IO
+	InitLoadIo();									//负载IO
 	
 	#ifdef DEBUG
 	InitDebugUartIo();								//初始化调试串口IO
@@ -305,6 +306,13 @@ void InitVariable(void)
 	InitSysModeVariable();							//初始化系统状态变量
 	InitMeasureVariable();							//初始化检测信号变量
 	InitLoadVariable();								//初始化负载变量
+
+
+	CmdHandVariableInit();
+	CmdSmartLinkVariableInit();
+	CmdSoftGoUpVariableInit();
+	CmdReBootVariableInit();
+	Cmd0x5000VariableIint();
 	
 	#ifdef DEBUG
 	InitDebugUartVariable();						//初始化调试串口变量
@@ -348,6 +356,8 @@ void InitAll(void)
 	Delay1ms(200);								//延时200ms以稳定电平
 	InitWdt();									//清狗
 	InitUart();									//串口初配置始化
+
+	Uart0Init();
 	
 	#ifdef DEBUG
 	InitDebugUart();							//调试串口配置初始化

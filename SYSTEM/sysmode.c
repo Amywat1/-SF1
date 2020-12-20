@@ -244,7 +244,7 @@ void SysModelCrl(void)
 		g_dispFlashFlag = ~g_dispFlashFlag;								//一定频率闪烁
 	}
 	
-	ErrorCheck();														//报警检测
+//	ErrorCheck();														//报警检测
 	
 	if(g_flg500ms)														//500ms时间进一次
 	{

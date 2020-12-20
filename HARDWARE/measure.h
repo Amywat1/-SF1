@@ -1,12 +1,12 @@
 #ifndef MEASURE_H
 #define MEASURE_H
 
-#define		P_CORE_NTC_IO		P4_3
-#define		P_CORE_NTC_AD		P4_2
-#define		P_LID				P5_0
+#define		P_CORE_NTC_IO		P4_4
+#define		P_CORE_NTC_AD		P4_3
+#define		P_LID				P5_3
 
-#define		CORE_NTC_IO_OUT		{(P4CR |= BIT3);(P4PCR &= ~BIT3);}
-#define		CORE_NTC_IO_IN		{(P4CR &= ~BIT3);(P4PCR &= ~BIT3);}
+#define		CORE_NTC_IO_OUT		{(P4CR |= BIT4);(P4PCR &= ~BIT4);}
+#define		CORE_NTC_IO_IN		{(P4CR &= ~BIT4);(P4PCR &= ~BIT4);}
 
 #define		PD_VALUE						0x02B0		//掉电重新加载的AD阈值（15min左右）
 

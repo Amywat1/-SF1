@@ -75,11 +75,11 @@
 /*
 /*
 /*----------------------------------------------------端口配置-------------------*/
-#define		BUZZ_IO_OUTPUT    	P3CR  |=  BIT7			    			//端口输出模式配置	 据不同单片机SFR填写 设置为输出口
-#define 	BUZ_PULL_UP   	 	P3PCR &= ~BIT7		    				//端口上拉电阻配置	 据不同单片机SFR填写 设置为关闭上拉
-#define 	BUZ_GPIO	     	P3_7	    		    			    //端口指定初始化	 据不同单片机SFR填写  端口定义
+#define		BUZZ_IO_OUTPUT    	P2CR  |=  BIT6			    			//端口输出模式配置	 据不同单片机SFR填写 设置为输出口
+#define 	BUZ_PULL_UP   	 	P2PCR &= ~BIT6		    				//端口上拉电阻配置	 据不同单片机SFR填写 设置为关闭上拉
+#define 	BUZ_GPIO	     	P2_6	    		    			    //端口指定初始化	 据不同单片机SFR填写  端口定义
 
-#define     BUZ_POWER_SAVE      P3 &= ~BIT7						  	    //端口输出省电电平	 据不同单片机SFR/电路结构填写 
+#define     BUZ_POWER_SAVE      P2 &= ~BIT6						  	    //端口输出省电电平	 据不同单片机SFR/电路结构填写 
 /*
 /*
 /*

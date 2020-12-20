@@ -9,7 +9,7 @@ bit 					g_firstRecvFlag;		//首次接收数据标志
 
 /*-----------------------------------------------------------------------------
 Description:		初始化串口IO
-					电源板通讯：TXD：P4.0；RXD：P4.1
+					电源板通讯：TXD：P4.0；RXD：P4.2
 Input:				void
 Return:				void
 History:			无
@@ -25,8 +25,8 @@ void InitUartIo(void)
 	P_TXD = 1;
 	
 	/*RXD输入，不带上拉*/
-	P4CR &= (~BIT1);
-	P4PCR &= (~BIT1);
+	P4CR &= (~BIT2);
+	P4PCR &= (~BIT2);
 }
 
 /*-----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void InitUart(void)
 {
 	/*BANK1*/
 	BANK1_SET;
-	UART1CR = 0x23;							//TXD1映射到P4.0；RXD1映射到P4.1
+	UART1CR = 0x24;							//TXD1映射到P4.0；RXD1映射到P4.2
 	
 	SCON1 = 0x50;							//0101 0000，方式1，8位异步，可变波特率，接收允许
 	

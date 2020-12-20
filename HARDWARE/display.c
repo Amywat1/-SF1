@@ -35,28 +35,28 @@ void InitDispIo(void)
 	BANK0_SET;
 	
 	/*SEG口做输出不带上拉，输出低*/
-	P0CR  |= (BIT0 | BIT1 | BIT2);					//输出
-	P1CR  |= (BIT7);
-	P3CR  |= (BIT0 | BIT1 | BIT5);
+	P1CR  |= (BIT1 | BIT2 | BIT3 | BIT4 | BIT5);				//输出
+	P3CR  |= BIT4;
+	P4CR  |= BIT5;
 
-	P0PCR &= (~(BIT0 | BIT1 | BIT2));				//无上拉
-	P1PCR &= (~(BIT7));
-	P3PCR &= (~(BIT0 | BIT1 | BIT5));
+	P1PCR &= (~(BIT1 | BIT2 | BIT3 | BIT4 | BIT5));				//无上拉
+	P3PCR &= (~(BIT4));
+	P4PCR &= (~(BIT5));
 
-	P0	  &= (~(BIT0 | BIT1 | BIT2));				//输出低
-	P1	  &= (~(BIT7));
-	P3	  &= (~(BIT0 | BIT1 | BIT5));
+	P1	  &= (~(BIT1 | BIT2 | BIT3 | BIT4 | BIT5));				//输出低
+	P2	  &= (~(BIT4));
+	P4	  &= (~(BIT5));
 
 	BANK1_SET;
-	P5CR  |= (BIT1);
-	P5PCR &= (~(BIT1));
-	P5	  &= (~(BIT1));
+	P5CR  |= (BIT2);
+	P5PCR &= (~(BIT2));
+	P5	  &= (~(BIT2));
 	BANK0_SET;
 	
 	/*COM口做输出不带上拉，输出低*/
-	P3CR  |= (BIT2 | BIT3 | BIT4 | BIT6);			//输出
-	P3PCR &= (~(BIT2 | BIT3 | BIT4 | BIT6));		//无上拉
-	P3	  &= (~(BIT2 | BIT3 | BIT4 | BIT6));		//输出低
+	P3CR  |= (BIT0 | BIT1 | BIT2 | BIT3);			//输出
+	P3PCR &= (~(BIT0 | BIT1 | BIT2 | BIT3));		//无上拉
+	P3	  &= (~(BIT0 | BIT1 | BIT2 | BIT3));		//输出低
 }
 
 /*-----------------------------------------------------------------------------
@@ -120,7 +120,6 @@ History:			无
 -----------------------------------------------------------------------------*/
 void DisplayDataLoad(void)
 {
-	BANK1_SET;									//P5口需切BANK1
 	if(DispSegA == 1)							//segA
 	{
 		P_SEG_A = 1;
@@ -129,8 +128,8 @@ void DisplayDataLoad(void)
 	{
 		P_SEG_A = 0;
 	}
-	BANK0_SET;
 	
+	BANK1_SET;									//P5口需切BANK1
 	if(DispSegB == 1)							//segB
 	{
 		P_SEG_B = 1;
@@ -139,6 +138,7 @@ void DisplayDataLoad(void)
 	{
 		P_SEG_B = 0;
 	}
+	BANK0_SET;
 	
 	if(DispSegC == 1)							//segC
 	{

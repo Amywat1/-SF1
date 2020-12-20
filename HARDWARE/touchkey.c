@@ -32,8 +32,11 @@ void InitTouchKeyIo(void)
 {
 	BANK0_SET;
 
-	P1CR &= (~(BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6));			//输入
-	P1PCR &= (~(BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6));			//无上拉
+	P0CR &= (~(BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6));			//输入
+	P0PCR &= (~(BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6));			//无上拉
+
+	P1CR &= (~BIT7);			//输入
+	P1PCR &= (~BIT7);			//无上拉
 }
 
 /*-----------------------------------------------------------------------------
@@ -85,10 +88,12 @@ void InitTouchKey(void)
 	TKDIV03	= 0xAA;
 	TKDIV04	= 0x00;
 	
-	P1SS |= (BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6);			//P1.0~P1.6作为触摸口
+	P0SS |= (BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6);			//P0.1~P0.6作为触摸口
+	P1SS |= BIT7;							//P1.7作为触摸口
 	
 	TKVREF = 0xA7;                     	 	//Vref=1.0v   去抖时间32Tsys  OP输出电压3.0V 放电时间延时640Tsy
-	TKU1 = 0x7F;							//按键扫描顺序控制
+	TKU1 = 0x80;							//按键扫描顺序控制
+	TKU2 = 0x7E;
 	
 	ETK = 1;								//允许触摸按键中断
 }
@@ -165,12 +170,12 @@ void TouchKeyScan(void)
 					{
 						if(i == 0)					//TK01		温度-
 						{
-							keyBuf |= KEY_TEMP_SUB;
+							keyBuf |= KEY_ON_OFF;
 						}
 
 						if(i == 1)					//TK02		启动取消
 						{
-							keyBuf |= KEY_ON_OFF;
+							keyBuf |= KEY_TEMP_SUB;
 						}
 
 						if(i == 2)					//TK03		时间+
@@ -434,7 +439,7 @@ void TouchKeyDealSubroutine(void)
 				break;
 
 				case KEY_ORDER:
-					//无效
+					CmdSmartlinkStart_flag = 1;
 				break;
 
 				case KEY_CHANGE_FUN:

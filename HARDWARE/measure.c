@@ -19,7 +19,7 @@ unsigned char xdata				judgeErrValue;					//水泵缺水的判定阈值
 
 /*-----------------------------------------------------------------------------
 Description:		初始化检测引脚IO
-					腔体NTC的AD口：P4.2；IO口：P4.3
+					腔体NTC的AD口：P4.3；IO口：P4.4
 					盖检测口：P5.0
 Input:				void
 Return:				void
@@ -29,13 +29,13 @@ void InitMeasureIo(void)
 {
 	BANK0_SET;
 
-	P4CR  &= (~(BIT2 | BIT3));						//AD口和IO口做输入不带上拉，先检测低温区
-	P4PCR &= (~(BIT2 | BIT3));
+	P4CR  &= (~(BIT3 | BIT4));						//AD口和IO口做输入不带上拉，先检测低温区
+	P4PCR &= (~(BIT3 | BIT4));
 	
 	BANK1_SET;
 	
-	P5CR  &= ~BIT0;									//盖检测IO做输入带上拉
-	P5PCR |= BIT0;
+	P5CR  &= ~BIT3;									//盖检测IO做输入带上拉
+	P5PCR |= BIT3;
 	BANK0_SET;
 }
 
@@ -109,10 +109,10 @@ void InitAd(void)
 	ADCON2 = 0x00;
 	SEQCON = 0x00;
 	
-	ADCH1  = 0x84;									//AN2，AN7做模拟输入口
+	ADCH1  = 0x08;									//AN3做模拟输入口
 	ADCH2  = 0x00;
 	
-	SEQCHX = 0x07;									//选择通道7
+	SEQCHX = 0x03;									//选择通道3
 	
 	Delay1ms(20);									//端口配置完做延迟
 	
@@ -217,57 +217,57 @@ void InitAd(void)
 	g_lastPumpNormalWorkAd = ((unsigned int)(i) << 8) + (unsigned int)(j);
 	
 	/*3次ad采样值都大于阈值，头码为0x5A，校验和正确*/
-	if((PdAdc1 > PD_VALUE) && (PdAdc2 > PD_VALUE) && (PdAdc3 > PD_VALUE) && (PdCheckCode == 0x5A) && (PdCheckSum == checkSumRead))
-	{
-		/*若是在预约工作、工作、保温状态下掉电的，则继续工作*/
-		if((PdSysType == SysModeOrderWork) || (PdSysType == SysModeWork) || (PdSysType == SysModeWarm))
-		{
-			if(PdTempReasonableFlag)													//若温度区间合理
-			{
-				g_sysType			= PdSysType;
-				g_menuNumber		= PdMenuNumber;
-				g_nowStepNum		= PdNowStepNum;
-				g_nowStepTechnology	= PdNowStepTechnology;
-				g_nowStepworkTemp	= PdNowStepworkTemp;
-				g_nowStepworkTime	= PdNowStepworkTime;
-				g_workTimeAll		= PdWorkTimeAll;
-				g_highSteamPowerCnt	= PdHighSteamPowerCnt;
-				g_keepWarmTime		= PdKeepWarmTime;
-				g_orderTime			= PdOrderTime;
-				g_workOneMinCnt		= PdWorkOneMinCnt;
+	// if((PdAdc1 > PD_VALUE) && (PdAdc2 > PD_VALUE) && (PdAdc3 > PD_VALUE) && (PdCheckCode == 0x5A) && (PdCheckSum == checkSumRead))
+	// {
+	// 	/*若是在预约工作、工作、保温状态下掉电的，则继续工作*/
+	// 	if((PdSysType == SysModeOrderWork) || (PdSysType == SysModeWork) || (PdSysType == SysModeWarm))
+	// 	{
+	// 		if(PdTempReasonableFlag)													//若温度区间合理
+	// 		{
+	// 			g_sysType			= PdSysType;
+	// 			g_menuNumber		= PdMenuNumber;
+	// 			g_nowStepNum		= PdNowStepNum;
+	// 			g_nowStepTechnology	= PdNowStepTechnology;
+	// 			g_nowStepworkTemp	= PdNowStepworkTemp;
+	// 			g_nowStepworkTime	= PdNowStepworkTime;
+	// 			g_workTimeAll		= PdWorkTimeAll;
+	// 			g_highSteamPowerCnt	= PdHighSteamPowerCnt;
+	// 			g_keepWarmTime		= PdKeepWarmTime;
+	// 			g_orderTime			= PdOrderTime;
+	// 			g_workOneMinCnt		= PdWorkOneMinCnt;
 				
-				/*赋一个NTC初值，使高温不加热且不报警*/
-				measureData.coreAdHValue = 0x014A;		//240℃
-				measureData.coreAdLValue = 0x000F;		//240℃
-				g_adDataHSteam			 = 0x0259;		//185℃
-				g_adDataLSteam			 = 0x002D;		//185℃
+	// 			/*赋一个NTC初值，使高温不加热且不报警*/
+	// 			measureData.coreAdHValue = 0x014A;		//240℃
+	// 			measureData.coreAdLValue = 0x000F;		//240℃
+	// 			g_adDataHSteam			 = 0x0259;		//185℃
+	// 			g_adDataLSteam			 = 0x002D;		//185℃
 				
-				g_tempAdjEnFlag 	= MenuDefaultValue_Table[g_menuNumber][TEMP_ADJ_EN_NUM];	//加载温度可调标志
-				g_timeAdjEnFlag 	= MenuDefaultValue_Table[g_menuNumber][TIME_ADJ_EN_NUM];	//加载时间可调标志
+	// 			g_tempAdjEnFlag 	= MenuDefaultValue_Table[g_menuNumber][TEMP_ADJ_EN_NUM];	//加载温度可调标志
+	// 			g_timeAdjEnFlag 	= MenuDefaultValue_Table[g_menuNumber][TIME_ADJ_EN_NUM];	//加载时间可调标志
 
-				/*赋初值，使不报警*/
-				g_LidFlag		= LID_CLOSE;
-				g_zeroType		= STATE_YES;
+	// 			/*赋初值，使不报警*/
+	// 			g_LidFlag		= LID_CLOSE;
+	// 			g_zeroType		= STATE_YES;
 				
-				g_timeAdjStateFlag = 1;					//上电恢复默认显示时间
-				g_tempAdjStateFlag = 0;
+	// 			g_timeAdjStateFlag = 1;					//上电恢复默认显示时间
+	// 			g_tempAdjStateFlag = 0;
 
-				g_pdWaitTime	= PD_WAIT_TIME;			//1S内使用定义的AD值，之后再使用采样的值
-			}
-		}
-	}
+	// 			g_pdWaitTime	= PD_WAIT_TIME;			//1S内使用定义的AD值，之后再使用采样的值
+	// 		}
+	// 	}
+	// }
 	
 	SectorErase(0x0000,EEPROM_CRL);					//擦除扇区0，扇区被编程后，需擦除后才能再次编程
 
 	/*掉电检测的AD口做GPIO引脚*/
-	ADCH1 &= ~BIT7;
+	// ADCH1 &= ~BIT7;
 	
-	/*掉电检测AD口不带上拉输出高*/
-	P3    |= BIT7;									//给掉电记忆的电容充电
-	P3CR  |= BIT7;
-	P3PCR &= ~BIT7;
+	// /*掉电检测AD口不带上拉输出高*/
+	// P3    |= BIT7;									//给掉电记忆的电容充电
+	// P3CR  |= BIT7;
+	// P3PCR &= ~BIT7;
 	
-	SEQCHX = 0x02;									//选择通道2
+	SEQCHX = 0x03;									//选择通道3
 }
 
 /*-----------------------------------------------------------------------------
@@ -973,7 +973,7 @@ void MeasureDataScan(void)
 		LidScan();										//盖检测
 //		g_LidFlag = LID_CLOSE;
 		
-		if(SEQCHX == 0x02)								//若通道选择的是NTC检测通道
+		if(SEQCHX == 0x03)								//若通道选择的是NTC检测通道
 		{
 			NtcAdScan();								//中心温度NTC扫描
 		}

@@ -320,13 +320,13 @@ void IntTouchKey(void)	interrupt 1
 	if(TKF0 & BIT4)
 	{
 		TKF0 = 0;
-		g_scanDataTk[0] = ((unsigned int)(TK01H << 8)) | ((unsigned int)TK01L);
-		g_scanDataTk[1] = ((unsigned int)(TK02H << 8)) | ((unsigned int)TK02L);
-		g_scanDataTk[2] = ((unsigned int)(TK03H << 8)) | ((unsigned int)TK03L);
-		g_scanDataTk[3] = ((unsigned int)(TK04H << 8)) | ((unsigned int)TK04L);
-		g_scanDataTk[4] = ((unsigned int)(TK05H << 8)) | ((unsigned int)TK05L);
-		g_scanDataTk[5] = ((unsigned int)(TK06H << 8)) | ((unsigned int)TK06L);
-		g_scanDataTk[6] = ((unsigned int)(TK07H << 8)) | ((unsigned int)TK07L);
+		g_scanDataTk[0] = ((unsigned int)(TK08H << 8)) | ((unsigned int)TK08L);
+		g_scanDataTk[1] = ((unsigned int)(TK10H << 8)) | ((unsigned int)TK10L);
+		g_scanDataTk[2] = ((unsigned int)(TK11H << 8)) | ((unsigned int)TK11L);
+		g_scanDataTk[3] = ((unsigned int)(TK12H << 8)) | ((unsigned int)TK12L);
+		g_scanDataTk[4] = ((unsigned int)(TK13H << 8)) | ((unsigned int)TK13L);
+		g_scanDataTk[5] = ((unsigned int)(TK14H << 8)) | ((unsigned int)TK14L);
+		g_scanDataTk[6] = ((unsigned int)(TK15H << 8)) | ((unsigned int)TK15L);
 		
 		g_keyScanEndFlag = 1;
 	}

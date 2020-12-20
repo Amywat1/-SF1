@@ -2,7 +2,7 @@
 #define UART_H
 
 #define P_TXD		P4_0
-#define P_RXD		P4_1
+#define P_RXD		P4_2
 //#define N_TXD		P0_0
 //#define N_RXD		P0_1
 

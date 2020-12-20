@@ -4,9 +4,9 @@
 #define BANK0_SET				(INSCON &= (~BIT6))
 #define BANK1_SET				(INSCON |= BIT6)
 
-#define DEBUG_VERSION			0						//控制板调试版本号
+#define DEBUG_VERSION			1						//控制板调试版本号
 
-#define RELEASE_VERSION			10						//控制板发行版本号
+#define RELEASE_VERSION			2						//控制板发行版本号
 
 #define FLASH_CRL				0						//操作FLASH
 #define EEPROM_CRL				1						//操作EEPROM

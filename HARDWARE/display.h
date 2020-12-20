@@ -1,18 +1,18 @@
 #ifndef _DISPLAY_H_
 #define _DISPLAY_H_
 
-#define P_COM1				P3_6
-#define P_COM2				P3_4
-#define P_COM3				P3_3
-#define P_COM4				P3_2
-#define P_SEG_A				P5_1
-#define P_SEG_B				P0_2
-#define P_SEG_C				P0_0
-#define P_SEG_D				P3_0
-#define P_SEG_E				P3_1
-#define P_SEG_F				P3_5
-#define P_SEG_G				P1_7
-#define P_SEG_H				P0_1
+#define P_COM1				P3_3
+#define P_COM2				P3_2
+#define P_COM3				P3_1
+#define P_COM4				P3_0
+#define P_SEG_A				P4_5
+#define P_SEG_B				P5_2
+#define P_SEG_C				P1_4
+#define P_SEG_D				P1_2
+#define P_SEG_E				P1_1
+#define P_SEG_F				P3_4
+#define P_SEG_G				P1_5
+#define P_SEG_H				P1_3
 
 //显示数据符号定义
 #define SA					0x01

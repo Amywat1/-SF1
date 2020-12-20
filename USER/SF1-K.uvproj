@@ -433,6 +433,11 @@
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\buzzer.c</FilePath>
             </File>
+            <File>
+              <FileName>WIFI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\WIFI.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

@@ -1,6 +1,9 @@
 #ifndef LOAD_H
 #define LOAD_H
 
+#define	P_CAMERA_FAN			P2_4
+#define	P_CAMERA_LED			P2_5
+
 #define HEAT_JUDGE_TIME			8						//250ms时基，加热判断间隔时间
 #define HEAT_JUDGE_TIME_LONG	16						//250ms时基，加热判断间隔时间
 #define PRE_DEALY_TIME			40						//250ms时基，预热等待时间
@@ -61,7 +64,7 @@ extern bit						g_corePreHeatFirstFlag;	//首次预热标志
 
 extern LOAD_CRL_MESSAGE xdata	loadCrlData;			//负载控制的数据
 
-//void InitLoadIo(void);
+void InitLoadIo(void);
 void InitLoadVariable(void);
 void LoadHeatCrlData(void);
 void TubeInterimHeat(unsigned char funCnt, unsigned char val, unsigned char T);

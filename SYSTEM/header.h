@@ -3,7 +3,7 @@
 
 //#define DEBUG
 
-#include <SH79F326.h>
+#include <SH79F328.h>
 #include <intrins.h>
 #include <ABSACC.H>
 #include "initialize.h"
@@ -16,6 +16,8 @@
 #include "sysmode.h"
 #include "load.h"
 #include "measure.h"
+#include "TYPE_DEF.h"
+#include "WIFI.H"
 
 #ifdef DEBUG
 #include "uart_send_data.h"
