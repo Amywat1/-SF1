@@ -1,366 +1,1504 @@
+#include "common_sino_wealth.h"
 #include "header.h"
 
-TYPE_BYTE16 RevCmdflag_byte02;//
-TYPE_BYTE16 SendCmdflag_byte02;//
-TYPE_BYTE16 MCUSendCmdflag_byte02;//
+#define N_TXD					P0_0
+#define N_RXD					P2_7
 
-#define  BUF_LENGTH_NUM    80
+#define HEADER_CODE_H			0XFA						//指令头码高8位
+#define HEADER_CODE_L			0XFB						//指令头码低8位
+#define CONTRACT_VERSION		0X00						//通讯版本
+#define CONTRACT_FRAME_VALUE	0X00						//通讯帧总数（在数据包长度比较长是，分包发送时用到，例如一个数据包很长需要分三帧数据才能发送完，那么在发送这三帧数据是该字节为 3）
+#define CONTRACT_FRAME_NUM		0X00						//通讯帧序号
 
-unsigned char xdata Send_Buf[BUF_LENGTH_NUM];
-unsigned char xdata Recv_Buf[BUF_LENGTH_NUM];
+#define KX_MODEL_H				0x94						//设备型号
+#define KX_MODEL_L				0xFC						//设备型号
+#define PROGRAM_VERSION			0x00						//设备程序版本
 
-MCURevWifi_str xdata MCURevWifiDate;
-MCUSendWifi_str xdata MCUSendWifiDate;
+#define FRAME_LENGTH_MAX		90							//帧的最大长度
+#define CMD_NUM_BUFF_MAX		16							//最多的缓存命令个数
 
-MCUSend_hands xdata	MCUSendDate_hands;
-MCURev_hands xdata	MCURevDate_hands;
+#define ACK_TIMER_MAX			50							//10ms时基，应答最长时间
+#define RECV_OUT_TIMER			100							//10ms时基，数据接收超时时间
+#define SEND_INTERVAL_TIMER 	16							//10ms时基，发送的间隔时间	（1/9600（波特率）* 100（数据个数）* 10（一次发10位）=104ms）
 
-MCUSend_SmartLink xdata MCUSendDate_SmartLink;
-MCURev_SmartLink xdata MCURevDate_SmartLink;
+#define SEND_HEADER_H			mcuWifi.sendInf.u8Send_Buff[0]	//发送的数据帧头（高8位）
+#define SEND_HEADER_L			mcuWifi.sendInf.u8Send_Buff[1]	//发送的数据帧头（低8位）
+#define SEND_CONTRACT_VERSION	mcuWifi.sendInf.u8Send_Buff[2]	//发送的通讯版本
+#define SEND_FRAME_VALUE		mcuWifi.sendInf.u8Send_Buff[3]	//发送的通讯帧总数
+#define SEND_FRAME_NUM			mcuWifi.sendInf.u8Send_Buff[4]	//发送的通讯帧序号
+#define SEND_CONTROL_WORD		mcuWifi.sendInf.u8Send_Buff[5]	//发送的控制字
+#define SEND_COMMAND_H			mcuWifi.sendInf.u8Send_Buff[6]	//发送的指令（高8位）
+#define SEND_COMMAND_L			mcuWifi.sendInf.u8Send_Buff[7]	//发送的指令（低8位）
+#define SEND_DATA_LENGTH_H		mcuWifi.sendInf.u8Send_Buff[8]	//发送的数据长度
+#define SEND_DATA_LENGTH_L		mcuWifi.sendInf.u8Send_Buff[9]	//发送的数据长度
 
-MCUSend_SoftGoUp xdata MCUSendDate_SoftGoUp;
-MCURev_SoftGoUp xdata MCURevDate_SoftGoUp;
+#define RECV_HEADER_H			mcuWifi.recvInf.u8Recv_Buff[0]	//接收的数据帧头（高8位）
+#define RECV_HEADER_L			mcuWifi.recvInf.u8Recv_Buff[1]	//接收的数据帧头（低8位）
+#define RECV_CONTRACT_VERSION	mcuWifi.recvInf.u8Recv_Buff[2]	//接收的通讯版本
+#define RECV_FRAME_VALUE		mcuWifi.recvInf.u8Recv_Buff[3]	//接收的通讯帧总数
+#define RECV_FRAME_NUM			mcuWifi.recvInf.u8Recv_Buff[4]	//接收的通讯帧序号
+#define RECV_CONTROL_WORD		mcuWifi.recvInf.u8Recv_Buff[5]	//接收的控制字
+#define RECV_COMMAND_H			mcuWifi.recvInf.u8Recv_Buff[6]	//接收的指令（高8位）
+#define RECV_COMMAND_L			mcuWifi.recvInf.u8Recv_Buff[7]	//接收的指令（低8位）
+#define RECV_DATA_LENGTH_H		mcuWifi.recvInf.u8Recv_Buff[8]	//接收的数据长度
+#define RECV_DATA_LENGTH_L		mcuWifi.recvInf.u8Recv_Buff[9]	//接收的数据长度
 
-MCUSend_ReBoot xdata MCUSendDate_ReBoot;
-MCURev_ReBoot xdata  MCURevDate_ReBoot;
+/*识别失败原因类型（不允许修改值）*/
+typedef enum {
+	ERR_UNDEFINED				= 0x00,						//未定义
+	WRONG_LAYER,											//层数错误
+	RECOGNIZED_EMPTY,										//识别为空
+	UNCERTAIN,												//可信度低
+	UNRECOGNIZED,											//识别不了
+	PROCESS_MISMATCH,										//工艺不匹配
+	IDENTIFICATION_OVER_TIME,								//识别超时
+	CAMMER_BROKEN,											//摄像头坏
 
-//**********************************************************
+}IDEN_ERR_TypeDef;
 
-unsigned int  xdata recvFrameLen   = 0;				//�������ݳ���
-unsigned int  xdata recvDataCount  = 0;				//��������
-unsigned int  xdata recvOutTime    = 0;				//���ճ�ʱ������
+/*烤糊类型（不允许修改值）*/
+typedef enum {
+	BURN_UNDEFINED				= 0x00,						//未定义
+	ITS_BURNT,												//烤糊了
 
-unsigned int  xdata sendIntervalTime = 0;				//���ͼ��������
-unsigned int  xdata ackTime        = 0;				//Ӧ����ʱ������� 
+}BURN_STATUS_TypeDef;
 
-unsigned int  xdata sendFrameLen   = 0;				//����֡����
-unsigned int  xdata sendDataCount  = 0;				//����������
+/*摄像头状态类型（不允许修改值）*/
+typedef enum {
+	NORMAL						= 0x00,						//摄像头正常
+	BROKEN,													//摄像头损坏
 
-unsigned int  xdata CmdCode_Buf[16];   				//���û�����
-unsigned char xdata cmdNum         = 0;
-unsigned int  xdata cmdCode        = 0x0000;			//ָ����
+}CAMMER_STATUS_TypeDef;
 
-unsigned char xdata firmWareHandle_flag = 0x00;
-unsigned char xdata recvFirmWareEdit = 0x00;			//�̼�
+/*图片模糊度类型（不允许修改值）*/
+typedef enum {
+	/*不报警字段*/
+	VERY_CLEAR					= 0x00,						//清晰
+	DEGREE_OF_OCCLUSION_1_10	= 0x01,						//10%遮挡
+	DEGREE_OF_OCCLUSION_2_10	= 0x02,						//20%遮挡
+	DEGREE_OF_OCCLUSION_3_10	= 0x03,						//30%遮挡
+	DEGREE_OF_OCCLUSION_4_10	= 0x04,						//40%遮挡
+	DEGREE_OF_OCCLUSION_5_10	= 0x05,						//50%遮挡
+	DEGREE_OF_OCCLUSION_6_10	= 0x06,						//60%遮挡
+	DEGREE_OF_OCCLUSION_7_10	= 0x07,						//70%遮挡
+	DEGREE_OF_OCCLUSION_8_10	= 0x08,						//80%遮挡
+	DEGREE_OF_OCCLUSION_9_10	= 0x09,						//90%遮挡
+	DEGREE_OF_OCCLUSION_10_10	= 0x0A,						//100%遮挡
 
-//**********************************************************
+	/*报警字段*/
+	ERR_VERY_CLEAR					= 0x10,					//清晰
+	ERR_DEGREE_OF_OCCLUSION_1_10	= 0x11,					//10%遮挡
+	ERR_DEGREE_OF_OCCLUSION_2_10	= 0x12,					//20%遮挡
+	ERR_DEGREE_OF_OCCLUSION_3_10	= 0x13,					//30%遮挡
+	ERR_DEGREE_OF_OCCLUSION_4_10	= 0x14,					//40%遮挡
+	ERR_DEGREE_OF_OCCLUSION_5_10	= 0x15,					//50%遮挡
+	ERR_DEGREE_OF_OCCLUSION_6_10	= 0x16,					//60%遮挡
+	ERR_DEGREE_OF_OCCLUSION_7_10	= 0x17,					//70%遮挡
+	ERR_DEGREE_OF_OCCLUSION_8_10	= 0x18,					//80%遮挡
+	ERR_DEGREE_OF_OCCLUSION_9_10	= 0x19,					//90%遮挡
+	ERR_DEGREE_OF_OCCLUSION_10_10	= 0x1A,					//100%遮挡
 
-#define   N_TXD P0_0
-#define   N_RXD P2_7
+}PICTURE_BLUR_TypeDef;
 
-void CmdHandVariableInit(void)
+typedef struct {
+	unsigned int				u16FrameLen;				//发送帧长度（通讯协议中数据长度为16位）
+	unsigned int				u16FrameLenBuff;			//发送帧长度缓存，用于接收信息后缓存需要返回数据的长度
+	unsigned int				u16DataCnt;					//发送数据数（通讯协议中数据长度为16位）
+	unsigned char				u8IntervalTime;				//发送间隔时间
+
+	unsigned char	 			u8Send_Buff[FRAME_LENGTH_MAX];
+
+	unsigned char				u2WifiAckFlag	: 1;		//wifi的响应标志
+
+}SEND_INF_MemberDef;
+
+typedef struct {
+	unsigned int				u16FrameLen;				//接收数据帧长度（通讯协议中数据长度为16位）
+	unsigned int				u16DataCnt;					//接收数据计数（通讯协议中数据长度为16位）
+	unsigned char				u8OutTime;					//接收超时计数器
+
+	unsigned char	 			u8Recv_Buff[FRAME_LENGTH_MAX];
+
+	unsigned char				u2HeadOkFlag_H	: 1;		//接收数据的头码正确标志（高8位）
+	unsigned char				u2HeadOkFlag_L	: 1;		//接收数据的头码正确标志（低8位）
+
+}RECV_INF_MemberDef;
+
+typedef struct {
+	SEND_INF_MemberDef			sendInf;					//发送信息
+	RECV_INF_MemberDef			recvInf;					//接收信息
+	UATR_RECV_TYPE				recvType;					//MCU接收状态
+	UATR_SEND_TYPE				sendType;					//MCU发送状态
+
+	WIFI_STATUS_TypeDef			u8WifiStatus;				//WIFI当前的状态
+	CAMMER_STATUS_TypeDef		u8CammerStatus;				//摄像头状态
+	IDEN_ERR_TypeDef			u8IdentificationErrData;	//识别失败信息
+	BURN_STATUS_TypeDef			u8BurntStatus;				//烤糊状态
+	PICTURE_BLUR_TypeDef		u8PictureBlur;				//图片模糊度
+
+	unsigned char				u8FoodLocation;				//放置位置
+	unsigned char				u8FoodSize;					//食材大小信息
+	unsigned char				u8FoodQuantity;				//食材数量
+	unsigned char				u8FoodMiddleFlag;			//居中与否
+
+	unsigned int  		 		u16CmdCode_Buff[CMD_NUM_BUFF_MAX];	//命令缓冲区
+
+	unsigned char				u8AckTimeCnt;					//应答时间计数
+	unsigned char				u8CmdBuffNum;					//缓存的命令数
+	unsigned char				u8SnapshotCnt;					//抓图倒计时
+	unsigned int				u16RecommandMenu_1;				//推荐食谱1
+	unsigned int				u16RecommandMenu_2;				//推荐食谱2
+	unsigned int				u16RecommandMenu_3;				//推荐食谱3
+	unsigned int				u16RecommandMenu_4;				//推荐食谱4
+	unsigned int				u16RecommandMenu_5;				//推荐食谱5
+
+	unsigned char				u2HandsOkflag			: 1;	//握手成功标志
+	unsigned char				u2CmdSmartlinkflag		: 1;	//启动SmartLink标志
+	unsigned char				u2SmartlinkWorkFlag		: 1;	//处于SmartLink配置状态
+	unsigned char				u2FirmWareHandleflag	: 1;	//固件升级握手标志	
+	unsigned char				u2LampOpenConfirmflag	: 1;	//抓图时炉灯打开确认标志
+
+	/*指令启动标志*/
+	unsigned char				u2CmdDeviceReprotflag	: 1;	//设备上报状态指令
+	unsigned char				u2CmdSnapshotflag		: 1;	//抓图指令
+	unsigned char				u2CmdSmartBakingFlag	: 1;	//启动智能烘焙指令
+	unsigned char				u2CmdFirmwareUpgradeFlag: 1;	//设备请求固件升级指令
+	unsigned char				u2CmdRebootWifiFlag		: 1;	//重启wifi指令
+	unsigned char				u2CmdQueryDeviceStaFlag	: 1;	//查询设备状态指令
+	unsigned char				u2CmdKeyReportFlag		: 1;	//按键行为上报指令
+	unsigned char				u2CmdRemoveLinkFlag		: 1;	//解绑指令
+	unsigned char				u2CmdGetWiFiStatusFlag	: 1;	//获取wifi状态指令
+	unsigned char				u2ReturnSuccesAckFlag	: 1;	//返回接收成功响应
+	
+}MCU_WIFI_INF_MemberDef;
+
+MCU_WIFI_INF_MemberDef xdata	mcuWifi;						//MCU与wifi通讯的串口信息
+
+/*-----------------------------------------------------------------------------
+Description:		发送命令
+					cmd：		需要发送的命令
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void SendCommand(COMMAND_TypeDef cmd)
 {
-//send
+	switch (cmd)
+	{
+	case CMD_KX_APP_HANDS:
+		/* code */
+		break;
 
-	MCUSendDate_hands.Cmdcode_H=0xcc;			//ָ��߰�λ
-	MCUSendDate_hands.Cmdcode_L=0xc0;			//ָ��Ͱ�λ
-	MCUSendDate_hands.LengthDate_H=0x00;		//���ݳ���
-	MCUSendDate_hands.LengthDate_L=0x08;		//���ݳ���
-	MCUSendDate_hands.EquNumber_H=0x94;			//�豸��Ÿ߰�λ
-	MCUSendDate_hands.EquNumber_L=0xfc;			//�豸��ŵͰ�λ
-	MCUSendDate_hands.ProtcolVersion=0x00;		//ͨѶЭ��汾
-	MCUSendDate_hands.EquVersion=0x00;			//�豸�̼��汾	
-	MCUSendDate_hands.Datelarge_H=0x00;			//Date����󳤶ȸ߰�λ
-	MCUSendDate_hands.Datelarge_L=0xff;			//Date����󳤶ȵͰ�λ
-	MCUSendDate_hands.HardWareVersion=0x00;		//�豸Ӳ���汾
-	MCUSendDate_hands.Remove_sta=0x00;			//����ģ���״̬��0��Ĭ��ģʽ 1������APģʽ	 2:����sarmlink  3���������� 
+	case CMD_KX_APP_SMART_LINK:
+		mcuWifi.u2CmdSmartlinkflag			= 1;
+		break;
 
-//rev
+	case CMD_KX_APP_FIRMWARE_UPGRADE:
+		mcuWifi.u2CmdFirmwareUpgradeFlag	= 1;
+		break;
 
-	MCURevDate_hands.Aanser_H=0x00;	 		//Ӧ�����߰�λ 0x0000�ɹ�      ��0001ʧ��
-	MCURevDate_hands.Aanser_L=0x00; 			//Ӧ�����Ͱ�λ
- 	MCURevDate_hands.WIFISta=0x00;			//wifi״̬ 
- 	/*
-		00��δ����
-		01���޷����ӷ�����
-		02���Ѿ�����·����
-		03���Ѿ����ӷ�����
-		04���Ѿ�����smartlink
-		05��Ԥ��
-		06��Ԥ��
-		07��sartlink���óɹ�
-		08��ap״̬
+	case CMD_KX_APP_GET_STATUS:
+		mcuWifi.u2CmdGetWiFiStatusFlag		= 1;
+		break;
+
+	case CMD_KX_APP_RESTART_WIFI:
+		mcuWifi.u2CmdRebootWifiFlag			= 1;
+		break;
+
+	case CMD_KX_APP_REMOVE_LINK:
+		mcuWifi.u2CmdRemoveLinkFlag			= 1;
+		break;
+
+	case CMD_KX_APP_REPORT_STATUS:
+		mcuWifi.u2CmdDeviceReprotflag		= 1;
+		break;
+
+	case CMD_KX_APP_KEY_DATA:
+		mcuWifi.u2CmdKeyReportFlag			= 1;
+		break;
+
+	case CMD_APP_KX_STOP_WORK:
 		
-
- 	*/
-}
-
-void CmdSmartLinkVariableInit(void)
-{
-	//send
-
-	MCUSendDate_SmartLink.Cmdcode_H=0xcc;		//ָ��߰�λ
-	MCUSendDate_SmartLink.Cmdcode_L=0xc2;		//ָ��Ͱ�λ
-	MCUSendDate_SmartLink.CmdDtae_H=0x00;		//00
-	MCUSendDate_SmartLink.CmdDtae_L=0x00;		//00
-
-	//rev
-	MCURevDate_SmartLink.Aanser_H=0x00;	 		//����߰�λ
-	MCURevDate_SmartLink.Aanser_L=0x00; 		//����Ͱ�λ
-}
-
-void CmdSoftGoUpVariableInit(void)
-{
-	//send
-
-	MCUSendDate_SoftGoUp.Cmdcode_H=0xcc;	 	//ָ��߰�λ
-	MCUSendDate_SoftGoUp.Cmdcode_L=0xc5; 		//ָ��Ͱ�λ
- 	MCUSendDate_SoftGoUp.LengthDate_H=0x00;		//���ݳ���
-	MCUSendDate_SoftGoUp.LengthDate_L=0x02;		//���ݳ���
-	MCUSendDate_SoftGoUp.WIFISendDateLength_H=0x00;  //ÿһ֡�����ݳ����ݶ� 128���ֽ�  һ֡
-	MCUSendDate_SoftGoUp.WIFISendDateLength_L=0x80;
-
-	//rev
-	MCURevDate_SoftGoUp.Aanser_H=0x00;	 		//����߰�λ
-	MCURevDate_SoftGoUp.Aanser_L=0x00; 			//����Ͱ�λ
-}
-
-void CmdReBootVariableInit(void)
-{
-	//send
-
-	MCUSendDate_ReBoot.Cmdcode_H=0xcc;	 	//ָ��߰�λ
-	MCUSendDate_ReBoot.Cmdcode_L=0xc9; 		//ָ��Ͱ�λ
- 
-	MCUSendDate_ReBoot.SendDate_H=0x00;  		//����
-	MCUSendDate_ReBoot.SendDate_L=0x00;
-
-	//rev
-	MCURevDate_ReBoot.Aanser_H=0x00;	 		//����߰�λ
-	MCURevDate_ReBoot.Aanser_L=0x00; 			//����Ͱ�λ
-}
-
-void Cmd0x5000VariableIint(void)
-{
-
-
-
-	MCURevWifiDate.LudengONOFF = 0;
-
-
-
-
-
-	MCUSendWifiDate.McuWorkSta=0; //����״̬     0x5000
-
-	MCUSendWifiDate.McuMumeNumber_0=0;  //�˰����� 
-
-	MCUSendWifiDate.McuMumeNumber_1=0;  //�˰����� 
-
-	MCUSendWifiDate.McuMumeNumber_2=0;  //�˰����� 
-
-	MCUSendWifiDate.McuMumeNumber_3=0;  //�˰����� 
-
-	MCUSendWifiDate.McuyuyueEn=0; 		 //ԤԼʹ�ܣ�0x01 ʹ��
-
-	MCUSendWifiDate.McuyuyueFlag=0; 	 //ԤԼ��־λ 0x01 Ĭ����ԤԼ
-
-	MCUSendWifiDate.McuyuyueTimer_H=0; 	  //ԤԼʱ��
-
-	MCUSendWifiDate.McuyuyueTimer_L=0; 	  //ԤԼʱ��
-
-	MCUSendWifiDate.McuyureEn=0; 		 //Ԥ��ʹ�ܣ�0x01 ʹ��
-
-	MCUSendWifiDate.McuyureFlag=0; 		 //Ԥ�ȱ�־λ 0x01 Ĭ����Ԥ��
-
-	MCUSendWifiDate.McuyureTimer_H=0; 		 //Ԥ��ʱ��
-
-	MCUSendWifiDate.McuyureTimer_L=0; 		 //Ԥ��ʱ��
-
-	MCUSendWifiDate.McuyureKeepFlag=0; 		 //Ԥ�ȱ���
-
-	MCUSendWifiDate.McuyureKeepTimer=0; 	 //Ԥ�ȱ���ʱ��
-
-	MCUSendWifiDate.WorkStep1_Top_Temp=0; 	 	//������һ���Ϲܵ��¶�
-
-	MCUSendWifiDate.WorkStep1_Bot_Temp=0;  		//������һ���¹ܵ��¶�
-
-	MCUSendWifiDate.WorkStep1_work_Time=0;  	//������һ������ʱ��
-
-	MCUSendWifiDate.WorkStep2_Top_Temp=0;  		//������2���Ϲܵ��¶�
-
-	MCUSendWifiDate.WorkStep2_Bot_Temp=0;	  	//������2���¹ܵ��¶�
-
-	MCUSendWifiDate.WorkStep2_work_Time=0;  	//������2������ʱ��
-
-
-	MCUSendWifiDate.WorkStep3_Top_Temp=0;		//������3���Ϲܵ��¶�
-
-	MCUSendWifiDate.WorkStep3_Bot_Temp=0;		//������3���¹ܵ��¶�
-		
-	MCUSendWifiDate.WorkStep3_work_Time=0;		//������3������ʱ��
-
-	MCUSendWifiDate.Temp_Ajust_Line=0;    		//�¶ȵ��� �ֽ��
-
-	MCUSendWifiDate.Temp_Ajust_small=0;    		//�¶ȵ��� С����
-
-	MCUSendWifiDate.Temp_Ajust_large=0;    		//�¶ȵ��� �󲽳�
-
-	MCUSendWifiDate.Temp_Ajust_samllest=0;    	//�¶ȵ��� ��С�¶�
-
-	MCUSendWifiDate.Temp_Ajust_largeest=0;    	//�¶ȵ��� ����¶�
-
-	MCUSendWifiDate.Timer_work_leftMin=0;    	//ʣ�๤��ʱ��
-
-	MCUSendWifiDate.Timer_work_leftsecond=0;    //ʣ�๤��ʱ������
-
-	MCUSendWifiDate.Timer_Ajust_Min=0;    		//�ɵ���С
-
-	MCUSendWifiDate.Timer_Ajust_Max=0;    		//�ɵ����
-
-	MCUSendWifiDate.zhuanchaSta=0;              //ת��״̬ 1�� 0��
-
-	MCUSendWifiDate.LudengSta=0;              	//¯��״̬	1�� 0��
-
-	MCUSendWifiDate.RealTemp_Top=0;				//�Ϲ�ʵʱ�¶�
-
-	MCUSendWifiDate.RealTemp_Bot=0;				//�¹�ʵʱ�¶�
-
-	MCUSendWifiDate.Resver_1=0;					//Ԥ��
-	MCUSendWifiDate.Resver_2=0;					//Ԥ��
-	MCUSendWifiDate.Resver_3=0;					//Ԥ��
-	MCUSendWifiDate.Resver_4=0;					//Ԥ��
-	MCUSendWifiDate.Resver_5=0;					//Ԥ��
-	MCUSendWifiDate.Resver_6=0;					//Ԥ��
-
-	MCUSendWifiDate.ErroDate_H=0;              //���ϴ���
-
-	MCUSendWifiDate.ErroDate_L=0;              //���ϴ���		
-
-	MCUSendWifiDate.KeyNumber=0;
-
-//	TemCharDataInt(&MCUSendWifiDate.KeyCountN[0],10);
-
-	MCUSendCmdflag_Date=0;
-
-	SendCmdflag_Date=0;
-
-	RevCmdflag_Date=0;
+		break;
+	
+	default:
+		break;
+	}
 }
 
 /*-----------------------------------------------------------------------------
-Description:		��ʼ������IO
-					��Դ��ͨѶ��TXD��P0.0��RXD��P2.7
+Description:		读取wifi的相关信息
+					
+Input:				inf：		需要读取的信息
+
+Return:				读取的信息值
+History:			无
+-----------------------------------------------------------------------------*/
+unsigned char ReadWifiInf(WIFI_INF_TypeDef inf)
+{
+	switch (inf)
+	{
+	case WIFI_STATUS:
+		return mcuWifi.u8WifiStatus;
+		break;
+	
+	default:
+		return 0xFF;
+		break;
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Description:		初始化wifi串口IO
+					电源板通讯：TXD：P0.0；RXD：P2.7
 Input:				void
 Return:				void
-History:			��
+History:			无
 -----------------------------------------------------------------------------*/
-void Uart0IOSet(void)
+void InitWifiUartIo(void)
 {
-	BANK0_SET;										//ָ��Bank0
+	BANK0_SET;										//指向Bank0
 
-	/*��Դ��*/
-	/*TXD�������������������ߵ�ƽ*/
+	/*电源板*/
+	/*TXD输出，不带上拉，输出高电平*/
 	P0CR |= BIT0;
 	P0PCR &= (~BIT0);
 	N_TXD = 1;
 	
-	/*RXD���룬��������*/
+	/*RXD输入，不带上拉*/
 	P2CR &= (~BIT7);
 	P2PCR &= (~BIT7);
 }
 
-
 /*-----------------------------------------------------------------------------
-Description:		��ʼ����������
+Description:		初始化wifi模块变量
 Input:				void
 Return:				void
-History:			��
+History:			无
 -----------------------------------------------------------------------------*/
-void Uart0Init(void)
-{	
+void InitWifiVariable(void)
+{
+	mcuWifi.sendInf.u16FrameLen		= 0;
+	mcuWifi.sendInf.u16FrameLenBuff	= 0;
+	mcuWifi.sendInf.u16DataCnt		= 0;
+	mcuWifi.sendInf.u8IntervalTime	= 0;
+	mcuWifi.sendInf.u2WifiAckFlag	= 0;
+	InitCharArrayData(mcuWifi.sendInf.u8Send_Buff, FRAME_LENGTH_MAX);
 
-	//UartDataInit();       //UART ���ݸ�λ  
-	Uart0IOSet();	
+	mcuWifi.recvInf.u16FrameLen		= 0;
+	mcuWifi.recvInf.u16DataCnt		= 0;
+	mcuWifi.recvInf.u8OutTime		= 0;
+	mcuWifi.recvInf.u2HeadOkFlag_H	= 0;
+	mcuWifi.recvInf.u2HeadOkFlag_L	= 0;
+	InitCharArrayData(mcuWifi.recvInf.u8Recv_Buff, FRAME_LENGTH_MAX);
 
+	mcuWifi.recvType = RECV_OVER;
+	mcuWifi.sendType = SEND_OVER;
+
+	mcuWifi.u8WifiStatus			= TRY_CONNET_ROUTER;
+	mcuWifi.u8CammerStatus			= NORMAL;
+	mcuWifi.u8IdentificationErrData	= ERR_UNDEFINED;
+	mcuWifi.u8BurntStatus			= BURN_UNDEFINED;
+	mcuWifi.u8PictureBlur			= VERY_CLEAR;
+
+	mcuWifi.u8FoodLocation			= 0;
+	mcuWifi.u8FoodSize				= 0;
+	mcuWifi.u8FoodQuantity			= 0;
+	mcuWifi.u8FoodMiddleFlag		= 0;
+
+	InitIntArrayData(mcuWifi.u16CmdCode_Buff, CMD_NUM_BUFF_MAX);
+	
+	mcuWifi.u8AckTimeCnt			= 0;
+	mcuWifi.u8CmdBuffNum			= 0;
+	mcuWifi.u8SnapshotCnt			= 0;
+	mcuWifi.u16RecommandMenu_1		= 0x0000;
+	mcuWifi.u16RecommandMenu_2		= 0x0000;
+	mcuWifi.u16RecommandMenu_3		= 0x0000;
+	mcuWifi.u16RecommandMenu_4		= 0x0000;
+	mcuWifi.u16RecommandMenu_5		= 0x0000;
+
+	mcuWifi.u2HandsOkflag			= 0;
+	mcuWifi.u2CmdSmartlinkflag		= 0;
+	mcuWifi.u2SmartlinkWorkFlag		= 0;
+	mcuWifi.u2FirmWareHandleflag	= 0;
+	mcuWifi.u2LampOpenConfirmflag	= 0;
+
+	mcuWifi.u2CmdDeviceReprotflag	= 0;
+	mcuWifi.u2CmdSnapshotflag		= 0;
+	mcuWifi.u2CmdSmartBakingFlag	= 0;
+	mcuWifi.u2CmdFirmwareUpgradeFlag= 0;
+	mcuWifi.u2CmdRebootWifiFlag		= 0;
+	mcuWifi.u2CmdQueryDeviceStaFlag	= 0;
+	mcuWifi.u2CmdKeyReportFlag		= 0;
+	mcuWifi.u2CmdRemoveLinkFlag		= 0;
+	mcuWifi.u2CmdGetWiFiStatusFlag	= 0;
+	mcuWifi.u2ReturnSuccesAckFlag	= 0;
+}
+
+/*-----------------------------------------------------------------------------
+Description:		初始化wifi串口配置
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void InitWifiUart(void)
+{
 	/*BANK1*/
 	BANK1_SET;	
-	UART0CR = 0x05;							//TXD0ӳ�䵽P0.0��RXD0ӳ�䵽P2.7
+	UART0CR = 0x05;							//TXD0映射到P0.0；RXD0映射到P2.7
 	BANK0_SET;	
-	SCON = 0x50;							//0101 0000����ʽ1��8λ�첽���ɱ䲨���ʣ���������
+	SCON = 0x50;							//0101 0000，方式1，8位异步，可变波特率，接收允许
 	
 											//24000000/16/9600 = 156.25
 											//SBRT = 32768 - 156 = 32612 = 0x7F64
 											//9600 = 24000000/(16*156+BFINE)
-											//BFINE = 4��ʵ�ʲ�����Ϊ24000000/(16*156+4)=9600
-	SBRTH = 0x7F;							//EUART�����ʷ�����������
+											//BFINE = 4，实际波特率为24000000/(16*156+4)=9600
+	SBRTH = 0x7F;							//EUART波特率发生器计数器
 	SBRTL = 0x64;
 	SFINE = 0x04;
 	
-	SBRTH |= BIT7;							//��EUART0������
+	SBRTH |= BIT7;							//开EUART0波特率
 	
 	BANK0_SET;	
 	
-	UTOS |= BIT0;							//RXD0��ƽΪTTL�߼�
+	UTOS |= BIT0;							//RXD0电平为TTL逻辑
 	
-	IEN0 |= BIT4;							//��EUART0�ж�	
+	IEN0 |= BIT4;							//开EUART0中断
 }
 
-
-//�����жϺ������
-void INT_EUART0(void) interrupt 4
+/*-----------------------------------------------------------------------------
+Description:		生成和校验值
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+unsigned char SumMakeVerify(unsigned char *PBuf, unsigned int Len)
 {
-	//unsigned char data UartRevBak;
-	//unsigned char data i; 
-	unsigned char recvSbuf = 0;
+	unsigned char Verify = 0;
+	while(Len--)
+	{
+		Verify = Verify + (*PBuf);
+		++PBuf;
+	}
+	return (~Verify + 1);
+}
+
+/*-----------------------------------------------------------------------------
+Description:		解密校验
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+unsigned char SumVerify(unsigned char *PBuf, unsigned int Len)
+{
+	unsigned char Verify = 0;
+
+	while(Len--)
+	{
+		Verify = Verify + (*PBuf);
+		PBuf ++;
+	}
+	return (Verify == 0);									//如果verify为0 返回1 否则返回0
+}
+
+/*-----------------------------------------------------------------------------
+Description:		发送串口数据处理
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+unsigned int SendUartData(unsigned int len)
+{
+	SEND_HEADER_H			= HEADER_CODE_H;				//帧头高位
+	SEND_HEADER_L			= HEADER_CODE_L;				//帧头低位
+	SEND_CONTRACT_VERSION	= CONTRACT_VERSION;				//通信版本
+	SEND_FRAME_VALUE		= CONTRACT_FRAME_VALUE;			//帧总数
+	SEND_FRAME_NUM			= CONTRACT_FRAME_NUM;			//帧序号
+
+	if(mcuWifi.sendInf.u2WifiAckFlag)						//MCU发送要求对方回复时
+	{
+		SEND_CONTROL_WORD = 0x00;							//控制字：	0x00：主动发送指令要求对方回复
+															//			0x40：主动发送无需对方回复
+															//			0x80：返回指令
+	}
+	else
+	{
+		SEND_CONTROL_WORD = 0x80;
+	}
+
+	if((SEND_COMMAND_H == 0x50) && (SEND_COMMAND_L == 0x00) || \
+	  ((SEND_COMMAND_H == 0x60) && (SEND_COMMAND_L == 0x03)))		//5000（设备主动上报）和6003（按键行为上报）指令时，主动发送无需对方回复
+	{
+		SEND_CONTROL_WORD = 0x40;
+	}
+	
+	mcuWifi.sendInf.u8Send_Buff[len] = SumMakeVerify(mcuWifi.sendInf.u8Send_Buff, len);		//最后一个字节赋值校验和
+
+	mcuWifi.sendInf.u16DataCnt = 0;
+	mcuWifi.u8AckTimeCnt = ACK_TIMER_MAX;					//更新应答间隔时间
+	mcuWifi.sendType = SEND_GOING;							//置MCU状态为发送中
+	SBUF = mcuWifi.sendInf.u8Send_Buff[0];
+
+	return (len + 1);
+}
+
+/*-----------------------------------------------------------------------------
+Description:		赋值机器所有需要传递的信息（共76个数据）
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void DeviceDataAssignment(void)
+{
+	mcuWifi.sendInf.u8Send_Buff[10] = g_sysType;		//系统状态
+	mcuWifi.sendInf.u8Send_Buff[11] = 0;	//菜单编码（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[12] = 0;	//菜单编码（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[13] = 0;	//菜单编码（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[14] = 0;			//菜单编码（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[15] = 0;	//预约使能
+	mcuWifi.sendInf.u8Send_Buff[16] = 0;	//预约标识位
+	mcuWifi.sendInf.u8Send_Buff[17] = 0;	//预约时间（高8位）
+	mcuWifi.sendInf.u8Send_Buff[18] = 0;	//预约时间（低8位）
+	mcuWifi.sendInf.u8Send_Buff[19] = 0;	//预热使能
+	mcuWifi.sendInf.u8Send_Buff[20] = 0;	//预热标识位
+	mcuWifi.sendInf.u8Send_Buff[21] = 0;	//预热时间（高8位）
+	mcuWifi.sendInf.u8Send_Buff[22] = 0;	//预热时间（低8位）
+	mcuWifi.sendInf.u8Send_Buff[23] = 0;	//预热保持
+	mcuWifi.sendInf.u8Send_Buff[24] = 0;	//预热保持时间
+	mcuWifi.sendInf.u8Send_Buff[25] = g_nowStepworkTemp;	//第一步上管温度
+	mcuWifi.sendInf.u8Send_Buff[26] = 0;	//第一步下管温度
+	mcuWifi.sendInf.u8Send_Buff[27] = g_workTimeAll;		//第一步工作时间
+	mcuWifi.sendInf.u8Send_Buff[28] = 0;	//第二步上管温度
+	mcuWifi.sendInf.u8Send_Buff[29] = 0;	//第二步下管温度
+	mcuWifi.sendInf.u8Send_Buff[30] = 0;		//第二步工作时间
+	mcuWifi.sendInf.u8Send_Buff[31] = 0;	//第三步上管温度
+	mcuWifi.sendInf.u8Send_Buff[32] = 0;	//第三步下管温度
+	mcuWifi.sendInf.u8Send_Buff[33] = 0;		//第三步工作时间
+	mcuWifi.sendInf.u8Send_Buff[34] = 45;	//温度调节步长分界点温度
+	mcuWifi.sendInf.u8Send_Buff[35] = 5;	//温度小于分界点，温度调整步长
+	mcuWifi.sendInf.u8Send_Buff[36] = 5;	//温度大于等于分界点，温度调整步长
+	mcuWifi.sendInf.u8Send_Buff[37] = 35;	//可调最小温度
+	mcuWifi.sendInf.u8Send_Buff[38] = 200;	//可调最大温度
+	mcuWifi.sendInf.u8Send_Buff[39] = g_workTimeAll;	//当前剩余工作时间（分钟）
+	mcuWifi.sendInf.u8Send_Buff[40] = 0;	//当前剩余工作时间（秒钟）
+	// if(mcuWifi.sendInf.u8Send_Buff[40] != 0)
+	// {
+	// 	mcuWifi.sendInf.u8Send_Buff[39] -= 1;			//读取的分钟值为进位值，若S不为零，则上传的分钟值减1
+	// }
+	mcuWifi.sendInf.u8Send_Buff[41] = 1;	//可调最小时间
+	mcuWifi.sendInf.u8Send_Buff[42] = 60;	//可调最大时间
+	mcuWifi.sendInf.u8Send_Buff[43] = 0;	//转叉状态
+	mcuWifi.sendInf.u8Send_Buff[44] = g_LedOpenFlag;	//炉灯状态
+	mcuWifi.sendInf.u8Send_Buff[45] = 0;	//上管实时温度符号
+	mcuWifi.sendInf.u8Send_Buff[46] = 0;	//上管实时温度（高8位）
+	mcuWifi.sendInf.u8Send_Buff[47] = 0;	//上管实时温度（低8位）
+	mcuWifi.sendInf.u8Send_Buff[48] = 0;	//下管实时温度符号
+	mcuWifi.sendInf.u8Send_Buff[49] = 0;	//下管实时温度（高8位）
+	mcuWifi.sendInf.u8Send_Buff[50] = 0;	//下管实时温度（低8位）
+	mcuWifi.sendInf.u8Send_Buff[51] = 1;	//时间调节步长
+	mcuWifi.sendInf.u8Send_Buff[52] = mcuWifi.u8IdentificationErrData;	//识别失败原因
+	mcuWifi.sendInf.u8Send_Buff[53] = mcuWifi.u8BurntStatus;	//烤糊
+	mcuWifi.sendInf.u8Send_Buff[54] = mcuWifi.u8PictureBlur;	//图片模糊度
+	mcuWifi.sendInf.u8Send_Buff[55] = mcuWifi.u8FoodLocation;	//烤盘位置
+	mcuWifi.sendInf.u8Send_Buff[56] = mcuWifi.u8FoodSize;		//食材形态
+	mcuWifi.sendInf.u8Send_Buff[57] = mcuWifi.u8FoodQuantity;	//食材数量
+	mcuWifi.sendInf.u8Send_Buff[58] = mcuWifi.u8FoodMiddleFlag;	//放置位置
+	mcuWifi.sendInf.u8Send_Buff[59] = 0;	//推荐菜单编码1（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[60] = 0;	//推荐菜单编码1（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[61] = (unsigned char)((mcuWifi.u16RecommandMenu_1 & 0xFF00) >> 8);	//推荐菜单编码1（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[62] = (unsigned char)(mcuWifi.u16RecommandMenu_1 & 0x00FF);	//推荐菜单编码1（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[63] = 0;	//推荐菜单编码2（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[64] = 0;	//推荐菜单编码2（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[65] = (unsigned char)((mcuWifi.u16RecommandMenu_2 & 0xFF00) >> 8);	//推荐菜单编码2（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[66] = (unsigned char)(mcuWifi.u16RecommandMenu_2 & 0x00FF);	//推荐菜单编码2（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[67] = 0;	//推荐菜单编码3（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[68] = 0;	//推荐菜单编码3（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[69] = (unsigned char)((mcuWifi.u16RecommandMenu_3 & 0xFF00) >> 8);	//推荐菜单编码3（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[70] = (unsigned char)(mcuWifi.u16RecommandMenu_3 & 0x00FF);	//推荐菜单编码3（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[71] = 0;	//推荐菜单编码4（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[72] = 0;	//推荐菜单编码4（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[73] = (unsigned char)((mcuWifi.u16RecommandMenu_4 & 0xFF00) >> 8);	//推荐菜单编码4（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[74] = (unsigned char)(mcuWifi.u16RecommandMenu_4 & 0x00FF);	//推荐菜单编码4（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[75] = 0;	//推荐菜单编码5（24~31位）
+	mcuWifi.sendInf.u8Send_Buff[76] = 0;	//推荐菜单编码5（16~23位）
+	mcuWifi.sendInf.u8Send_Buff[77] = (unsigned char)((mcuWifi.u16RecommandMenu_5 & 0xFF00) >> 8);	//推荐菜单编码5（8~15位）
+	mcuWifi.sendInf.u8Send_Buff[78] = (unsigned char)(mcuWifi.u16RecommandMenu_5 & 0x00FF);	//推荐菜单编码5（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[79] = mcuWifi.u8CammerStatus;	//摄像头状态
+	mcuWifi.sendInf.u8Send_Buff[80] = 0;	//预留1（高8位）
+	mcuWifi.sendInf.u8Send_Buff[81] = 0;	//预留1（低8位）
+	mcuWifi.sendInf.u8Send_Buff[82] = 0;	//预留2（高8位）
+	mcuWifi.sendInf.u8Send_Buff[83] = 0;	//预留2（低8位）
+//	mcuWifi.sendInf.u8Send_Buff[84] = (unsigned char)((ERR_NUM & 0xFF00) >> 8);	//故障代码（高8位）
+//	mcuWifi.sendInf.u8Send_Buff[85] = (unsigned char)(ERR_NUM & 0x00FF);		//故障代码（低8位）
+}
+
+/*-----------------------------------------------------------------------------
+Description:		Wifi的启动信息读取并更新
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void DeviceWorkDataUpdate(void)
+{
+	// unsigned int intDataBuff = 0;
+
+	// intDataBuff = mcuWifi.recvInf.u8Recv_Buff[12];
+	// intDataBuff = (intDataBuff << 8) + mcuWifi.recvInf.u8Recv_Buff[13];
+	// ChangeMachineStatus(MENU_NUM, intDataBuff);					//菜单编码			目前只用到低16位（2020/12/9）
+
+	// ChangeMachineStatus(ORDER_ENABLE,		mcuWifi.recvInf.u8Recv_Buff[14]);	//预约使能
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[15]);	//预约标识位
+
+	// intDataBuff = mcuWifi.recvInf.u8Recv_Buff[16];
+	// intDataBuff = (intDataBuff << 8) + mcuWifi.recvInf.u8Recv_Buff[17];
+	// ChangeMachineStatus(ORDER_TIME, intDataBuff);				//预约时间
+
+	// ChangeMachineStatus(PRE_HEAT_ENABLE,	mcuWifi.recvInf.u8Recv_Buff[18]);	//预热使能
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[19]);	//预热标识位
+
+	// intDataBuff = mcuWifi.recvInf.u8Recv_Buff[20];
+	// intDataBuff = (intDataBuff << 8) + mcuWifi.recvInf.u8Recv_Buff[21];
+	// ChangeMachineStatus(PRE_HEAT_TIME, intDataBuff);			//预热时间
+
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[22]);	//预热保持
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[23]);	//预热保持时间
+
+	g_nowStepworkTemp 	= mcuWifi.recvInf.u8Recv_Buff[24];
+	loadCrlData.plateHeatGear = (mcuWifi.recvInf.u8Recv_Buff[25])*2;
+	g_workTimeAll		= mcuWifi.recvInf.u8Recv_Buff[26];
+
+	// ChangeMachineStatus(WORK_TEMP_TOP_1,	mcuWifi.recvInf.u8Recv_Buff[24]);	//第一步上管温度
+	// ChangeMachineStatus(WORK_TEMP_BOT_1,	mcuWifi.recvInf.u8Recv_Buff[25]);	//第一步下管温度
+	// ChangeMachineStatus(WORK_TIME_1,		mcuWifi.recvInf.u8Recv_Buff[26]);	//第一步工作时间
+	// ChangeMachineStatus(WORK_TEMP_TOP_2,	mcuWifi.recvInf.u8Recv_Buff[27]);	//第二步上管温度
+	// ChangeMachineStatus(WORK_TEMP_BOT_2,	mcuWifi.recvInf.u8Recv_Buff[28]);	//第二步下管温度
+	// ChangeMachineStatus(WORK_TIME_2,		mcuWifi.recvInf.u8Recv_Buff[29]);	//第二步工作时间
+	// ChangeMachineStatus(WORK_TEMP_TOP_3,	mcuWifi.recvInf.u8Recv_Buff[30]);	//第三步上管温度
+	// ChangeMachineStatus(WORK_TEMP_BOT_3,	mcuWifi.recvInf.u8Recv_Buff[31]);	//第三步下管温度
+	// ChangeMachineStatus(WORK_TIME_3,		mcuWifi.recvInf.u8Recv_Buff[32]);	//第三步工作时间
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[33]);	//温度调节步长分界点温度
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[34]);	//温度小于分界点，温度调整步长
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[35]);	//温度大于等于分界点，温度调整步长
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[36]);	//可调最小温度
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[37]);	//可调最大温度
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[38]);	//可调最小时间
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[39]);	//可调最大时间
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[40]);	//转叉状态
+	// ChangeMachineStatus(LAMP_ENABLE,		mcuWifi.recvInf.u8Recv_Buff[41]);	//炉灯状态
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[42]);	//时间调节步长
+	// mcuWifi.u8FoodLocation		= mcuWifi.recvInf.u8Recv_Buff[43];	//放置位置
+	// mcuWifi.u8FoodSize			= mcuWifi.recvInf.u8Recv_Buff[44];	//食材形态信息
+	// mcuWifi.u8FoodQuantity		= mcuWifi.recvInf.u8Recv_Buff[45];	//食材数量
+	// mcuWifi.u8FoodMiddleFlag	= mcuWifi.recvInf.u8Recv_Buff[46];	//是否居中
+
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[47]);	//预留1（高8位）
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[48]);	//预留1（低8位）
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[49]);	//预留2（高8位）
+	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[50]);	//预留2（低8位）
+}
+
+/*-----------------------------------------------------------------------------
+Description:		MCU向wifi发送ACK
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+unsigned int SendWifiAck(unsigned int len)
+{
+	unsigned int i;
+
+	for(i=0;i<len;i++)
+	{
+		mcuWifi.sendInf.u8Send_Buff[i] = mcuWifi.recvInf.u8Recv_Buff[i];
+	}
+
+	mcuWifi.recvType = RECV_GOING;						//继续执行接收
+
+	SEND_CONTROL_WORD = 0x80;							//mcu接收成功回复，不用wifi答复
+
+	mcuWifi.sendInf.u8Send_Buff[len] = SumMakeVerify(mcuWifi.sendInf.u8Send_Buff, len);
+
+	mcuWifi.sendInf.u16DataCnt = 0;
+	mcuWifi.sendType = SEND_GOING;
+	SBUF = mcuWifi.sendInf.u8Send_Buff[0];
+
+	return(len + 1);
+}
+
+/*-----------------------------------------------------------------------------
+Description:		MCU向wifi发送数据处理
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void SendUart(void)
+{
+	unsigned char i = 0;
+	unsigned int cmdCode = 0;
+	// unsigned char lampStatus = 0;
+
+	//wifi已响应 且 数据已发送完毕 且 发送间隔时间到
+	if((mcuWifi.sendInf.u2WifiAckFlag == 0) && (mcuWifi.sendType == SEND_OVER) && (mcuWifi.sendInf.u8IntervalTime == 0))
+	{
+		if(mcuWifi.u2ReturnSuccesAckFlag)					//需要返回接收成功指令时（上一帧数据发送完后，马上发送ACK）
+		{
+			mcuWifi.sendInf.u16FrameLen = mcuWifi.sendInf.u16FrameLenBuff;		//缓存的发送长度赋值给发送长度变量
+			mcuWifi.sendInf.u16FrameLen = SendWifiAck(mcuWifi.sendInf.u16FrameLen);
+			mcuWifi.u2ReturnSuccesAckFlag = 0;				//ACK发送完毕
+
+			return;
+		}
+
+		if(mcuWifi.u2CmdSmartBakingFlag)					//若有启动智能烘焙指令
+		{
+			// lampStatus = g_LedOpenFlag;			//读炉灯状态
+
+			if(g_LedOpenFlag == 1)
+			{
+				mcuWifi.u2CmdSmartBakingFlag	= 0;		//指令已执行
+				mcuWifi.sendInf.u2WifiAckFlag	= 0;
+				SEND_COMMAND_H		= 0x82;					//发送820A指令
+				SEND_COMMAND_L		= 0x0A;
+				SEND_DATA_LENGTH_H	= 0x00;					//数据长度
+				SEND_DATA_LENGTH_L	= 0x00;
+				mcuWifi.sendInf.u16FrameLen		= 10;
+				mcuWifi.sendInf.u16FrameLen		= SendUartData(mcuWifi.sendInf.u16FrameLen);
+
+				mcuWifi.u2CmdDeviceReprotflag = 1;			//确认炉灯开启后，设备上报状态
+				return;										//直接返回，不执行以下代码
+			}
+		}
+
+		if(mcuWifi.u2CmdSnapshotflag)						//若有抓图指令
+		{
+			// lampStatus = g_LedOpenFlag;			//读炉灯状态
+
+			// if(lampStatus == STATUS_YES)
+			// {
+			// 	mcuWifi.u2CmdSnapshotflag		= 0;		//指令已执行
+			// 	mcuWifi.sendInf.u2WifiAckFlag	= 0;
+			// 	SEND_COMMAND_H		= 0x82;					//发送820B指令
+			// 	SEND_COMMAND_L		= 0x0B;
+			// 	SEND_DATA_LENGTH_H	= 0x00;					//数据长度
+			// 	SEND_DATA_LENGTH_L	= 0x00;
+			// 	mcuWifi.sendInf.u16FrameLen		= 10;
+			// 	mcuWifi.sendInf.u16FrameLen		= SendUartData(mcuWifi.sendInf.u16FrameLen);
+
+			// 	mcuWifi.u2CmdDeviceReprotflag = 1;			//确认炉灯开启后，设备上报状态
+			// 	return;										//直接返回，不执行以下代码
+			// }
+		}
+
+		if(mcuWifi.u8CmdBuffNum)							//存在缓存命令时，加载命令
+		{
+			cmdCode = mcuWifi.u16CmdCode_Buff[0];
+			mcuWifi.u8CmdBuffNum--;
+			for(i=0;i<mcuWifi.u8CmdBuffNum;i++)				//将剩余指令向前移位
+			{
+				mcuWifi.u16CmdCode_Buff[i] = mcuWifi.u16CmdCode_Buff[i + 1];
+			}
+
+			if(mcuWifi.u16CmdCode_Buff[CMD_NUM_BUFF_MAX - 1] != 0)	//若缓存命令Buff最后一个命令移位赋值后，不为零，则清零。防止一直移位，把所有缓存值都赋值为最后一个的命令（虽然u8CmdBuffNum会计数，命令值会更新）
+			{
+				mcuWifi.u16CmdCode_Buff[CMD_NUM_BUFF_MAX - 1] = 0;
+			}
+
+			SEND_COMMAND_H	= (unsigned char)((cmdCode & 0xff00) >> 8 );	//取指令高8位 
+			SEND_COMMAND_L	= (unsigned char)(cmdCode & 0x00ff);			//取指令低8位
+
+			switch(cmdCode)
+			{
+				case 0xCCC0:								//握手指令
+					mcuWifi.sendInf.u2WifiAckFlag = 1;		//要求回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x06;				//数据长度
+					mcuWifi.sendInf.u8Send_Buff[10] = KX_MODEL_H; 		//设备型号高位
+					mcuWifi.sendInf.u8Send_Buff[11] = KX_MODEL_L ; 		//设备型号低位
+					mcuWifi.sendInf.u8Send_Buff[12] = 0x00; 			//设备通信版本
+					mcuWifi.sendInf.u8Send_Buff[13] = PROGRAM_VERSION;	//设备固件版本
+					mcuWifi.sendInf.u8Send_Buff[14] = 0x00;	//通信数据长度高位
+					mcuWifi.sendInf.u8Send_Buff[15] = 0xFF;	//通信数据长度低位
+
+					//通讯协议中还有其它数据位，是否增加？
+
+					mcuWifi.sendInf.u16FrameLen = 16;		//赋值数据长度
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);	//加校验位后的长度
+					break;
+
+				case 0xCCC2:								//启动Smartlink
+					mcuWifi.u2SmartlinkWorkFlag		= 1;	//标记为Smartlink配置中
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x00;				//数据长度
+					mcuWifi.sendInf.u16FrameLen = 10;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0x6001:								//清除设备绑定
+					mcuWifi.sendInf.u2WifiAckFlag	= 1;	//要求回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x00;				//数据长度
+					mcuWifi.sendInf.u16FrameLen = 10;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0xCCC5:								//设备要求固件升级
+					mcuWifi.sendInf.u2WifiAckFlag = 1;		//要求回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x02;				//数据长度
+					mcuWifi.sendInf.u8Send_Buff[10] = 0x00;	//每帧长度高位
+					mcuWifi.sendInf.u8Send_Buff[11] = 0x01;	//每帧长度低位 暂定1
+					mcuWifi.sendInf.u16FrameLen = 12;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0xCCC7:								//获取WiFi模块的连接状态、以及信号强度
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x00;				//数据长度
+					mcuWifi.sendInf.u16FrameLen = 10;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0xCCC9:								//重启模块
+					mcuWifi.sendInf.u2WifiAckFlag	= 1;	//要求回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x00;				//数据长度
+					mcuWifi.sendInf.u16FrameLen = 10;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0x00B2:								//APP查询设备状态
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 76;				//数据长度
+
+					DeviceDataAssignment();					//赋值机器状态信息（共76个数据）
+					
+					mcuWifi.sendInf.u16FrameLen = 86;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0x5000:								//设备主动上报状态
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 76;				//数据长度
+
+					DeviceDataAssignment();					//赋值机器状态信息（共76个数据）
+
+					mcuWifi.sendInf.u16FrameLen = 86;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0x820A:								//启动智能烘焙
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+					SEND_DATA_LENGTH_L	= 0x00;				//数据长度
+					mcuWifi.sendInf.u16FrameLen = 10;
+					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+
+				case 0x6003:								//按键行为上报
+					mcuWifi.sendInf.u2WifiAckFlag	= 0;	//不需要回复响应
+
+//					SEND_DATA_LENGTH_H	= 0x00;				//数据长度
+//					SEND_DATA_LENGTH_L	= keyReportData.u8KeyNumber + 1;			//数据长度
+//					mcuWifi.sendInf.u8Send_Buff[10] = keyReportData.u8KeyNumber;	//按键个数
+
+//					for(i=0;i<keyReportData.u8KeyNumber;i++)	//赋值所有需要上传的按键
+//					{
+//						mcuWifi.sendInf.u8Send_Buff[11+i] = keyReportData.u8KeyValue[i];
+//					}
+
+//					keyReportData.u8KeyNumber = 0;			//值传递给发送的缓存变量后清零
+//					InitCharArrayData(keyReportData.u8KeyValue, VALID_TOUCHKEY_NUMBER);
+
+//					mcuWifi.sendInf.u16FrameLen = keyReportData.u8KeyNumber + 11;
+//					mcuWifi.sendInf.u16FrameLen = SendUartData(mcuWifi.sendInf.u16FrameLen);
+					break;
+			}
+		}
+		else
+		{
+			//无缓存命令，跳出
+		}
+		
+	}
+	else
+	{
+		//等待发送允许条件准备好
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Description:		MCU向wifi接收数据处理
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void RecvUart(void)
+{
+	unsigned char verify;
+	unsigned int cmdRecv;
+//	unsigned char nowSysMode;
+//	unsigned char workTimeAll;
+
+	unsigned char i = 0;
+	unsigned char j = 0;
+
+	if((mcuWifi.recvType == RECV_OVER) && (mcuWifi.u2ReturnSuccesAckFlag == 0))		//接收已完成且ACK已发送
+	{
+		// mcuWifi.recvType = RECV_GOING;						//继续执行接收
+
+		verify = SumVerify(mcuWifi.recvInf.u8Recv_Buff, (mcuWifi.recvInf.u16FrameLen + 1));
+
+		if(verify == 1)
+		{
+			cmdRecv = RECV_COMMAND_H;
+			cmdRecv = cmdRecv << 8;
+			cmdRecv = cmdRecv + RECV_COMMAND_L;				//赋值指令代码
+
+			switch(cmdRecv)
+			{
+				case 0xCCC0:								//握手指令
+					if(mcuWifi.u2HandsOkflag == 0)			//握手未成功时，蜂鸣
+					{
+						gU8_buzzerType = BUZ_HP_KEY;
+					}
+
+					if((mcuWifi.recvInf.u8Recv_Buff[10] == 0x00) && \
+					   (mcuWifi.recvInf.u8Recv_Buff[11] == 0x00))		//结果标识：U16： 0x0000：成功； 0x0001： 失败
+					{
+						mcuWifi.u2HandsOkflag = 1;			//握手成功
+
+						mcuWifi.u8WifiStatus = mcuWifi.recvInf.u8Recv_Buff[12];	//赋值wifi当前状态
+
+						mcuWifi.sendInf.u2WifiAckFlag = 0;	//标记已回复MCU
+						mcuWifi.u8CmdBuffNum = 0;			//缓存指令数清零
+
+						InitIntArrayData(mcuWifi.u16CmdCode_Buff,CMD_NUM_BUFF_MAX);		//缓存命令数组清零
+					}
+					else
+					{
+						//握手失败
+					}
+
+					break;
+
+				case 0xCCC2:								//SmartLink配置
+					if((mcuWifi.recvInf.u8Recv_Buff[10] == 0x00) && \
+					   (mcuWifi.recvInf.u8Recv_Buff[11] == 0x00))		//结果标识：U16： 0x0000：成功； 0x0001： 失败
+					{
+						mcuWifi.sendInf.u2WifiAckFlag	= 0;	//标记已回复MCU
+						mcuWifi.u2SmartlinkWorkFlag		= 0;	//标记smartLink已配置成功
+						mcuWifi.u8CmdBuffNum = 0;				//缓存指令数清零
+
+						InitIntArrayData(mcuWifi.u16CmdCode_Buff,CMD_NUM_BUFF_MAX);		//缓存命令数组清零
+					}
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0xCCD0:								//WiFi 模块上报状态信息
+					if(RECV_CONTROL_WORD == 0x00)			//正常工作过程中需要回复信息
+					{
+						mcuWifi.u8WifiStatus = mcuWifi.recvInf.u8Recv_Buff[10];
+
+						RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+						RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+						mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+						mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+						mcuWifi.sendInf.u16FrameLenBuff	= 12;
+						mcuWifi.u2ReturnSuccesAckFlag	= 1;		//需要返回接收成功信息
+					}
+					else									//smartlink 配置时，不需要回复信息
+					{
+						mcuWifi.u8WifiStatus = mcuWifi.recvInf.u8Recv_Buff[10];
+					}
+					
+					if(mcuWifi.u2SmartlinkWorkFlag)
+					{
+						if((mcuWifi.u8WifiStatus != TRY_CONNET_ROUTER) && (mcuWifi.u8WifiStatus != CAN_NOT_CONNET_SERVER))	//已连路由器（指示灯常亮）
+						{
+							mcuWifi.u2SmartlinkWorkFlag = 0;	//标记Smartlink已配置成功
+							mcuWifi.u2CmdSmartlinkflag	= 0;	//标记Smartlink已处理
+						}
+					}
+
+					break;
+
+				case 0xCCC5:								//设备要求固件升级
+					if((mcuWifi.recvInf.u8Recv_Buff[10] == 0x00) && (mcuWifi.recvInf.u8Recv_Buff[11] == 0x00))	//成功
+					{
+						mcuWifi.sendInf.u2WifiAckFlag = 0;	//标记已回复MCU
+						mcuWifi.u2CmdFirmwareUpgradeFlag = 1;
+					}
+					else
+					{
+						mcuWifi.u2CmdFirmwareUpgradeFlag = 0;
+					}
+					
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0xCCC7:								//WiFi 模块的连接状态以及信号强度
+					if((mcuWifi.recvInf.u8Recv_Buff[10] == 0x00) && (mcuWifi.recvInf.u8Recv_Buff[11] == 0x00))	//成功
+					{
+						mcuWifi.u8WifiStatus = mcuWifi.recvInf.u8Recv_Buff[12];
+					}
+					else 
+					{
+						
+					}
+					break;
+
+				case 0xCCC9:								//重启模块
+					if((mcuWifi.recvInf.u8Recv_Buff[10] == 0x00) && (mcuWifi.recvInf.u8Recv_Buff[11] == 0x00))	//成功
+					{
+						mcuWifi.sendInf.u2WifiAckFlag = 0;	//标记已回复MCU
+						mcuWifi.u2CmdRebootWifiFlag = 1;	
+					}
+					else
+					{
+						mcuWifi.u2CmdRebootWifiFlag = 0;
+					}
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;		
+			
+				case 0xCCD1:								//固件升级握手指令
+
+//					if(ReadMachineStatus(SYS_MODE) == SYS_MODE_STANDBY)		//待机状态时
+//					{
+//						// recvFirmWareEdit = Recv_Buf[10];
+//						/*Sector_Erase(0x0300,1); 			//固件升级擦除密钥
+//						Byte_Write1(0x0300,0x55,1); 		//写入密钥0x55
+//						Byte_Write1(0x0301,0xaa,1); 		//写入密钥0xaa */	
+//						RECV_DATA_LENGTH_H = 0;
+//						RECV_DATA_LENGTH_L = 4;
+//						mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;
+//						mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+//						mcuWifi.recvInf.u8Recv_Buff[12] = 0x01;
+//						mcuWifi.recvInf.u8Recv_Buff[13] = 0x00;
+//						mcuWifi.sendInf.u16FrameLenBuff	= 14;
+
+//						mcuWifi.u2ReturnSuccesAckFlag 	= 1;	//需要返回接收成功信息
+
+//						mcuWifi.u2FirmWareHandleflag	= 1;
+//					}
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x00B5:								//APP启动菜单
+					DeviceWorkDataUpdate();					//更新工作参数信息
+
+					if((g_sysType == SysModeStandby) || (g_sysType == SysModeSelect))
+					{
+						// if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x30)	//仅取了最高8位判断食谱编码，不能显示详细菜单信息
+						// {
+						// 	if(mcuWifi.recvInf.u8Recv_Buff[18])	//若预热使能
+						// 	{
+						// 		ChangeMachineStatus(SYS_MODE, SYS_MODE_PRE_HEAT);	//转到预热状态
+						// 	}
+						// 	else
+						// 	{
+						// 		ChangeMachineStatus(SYS_MODE, SYS_MODE_DIY_WORKING);//转到自主烘焙工作状态
+						// 	}
+						// }
+						// else if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x00)
+						// {
+						// 	ChangeMachineStatus(SYS_MODE, SYS_MODE_SMART_WORKING);	//转到智能烘焙工作状态
+						// }
+
+						g_sysType = SysModeWork;
+
+						// ChangeMachineStatus(NOW_WORK_STEP, 1);						//从第一步开始执行
+						// workTimeAll = (unsigned char)(ReadMachineStatus(WORK_TIME_1));
+						// workTimeAll += (unsigned char)(ReadMachineStatus(WORK_TIME_2));
+						// workTimeAll += (unsigned char)(ReadMachineStatus(WORK_TIME_3));	//计算总时间
+						// ChangeMachineStatus(NOW_WORK_TIME_ALL_MINUTE, workTimeAll);		//更新总时间(函数内会清零S计时器)
+					}
+
+					RECV_DATA_LENGTH_H = 0x00;  				//数据长度（为返回信息的数据长度）
+					RECV_DATA_LENGTH_L = 6;
+
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;		//返回成功信息
+
+					// mcuWifi.recvInf.u8Recv_Buff[12] = 0x00;	//返回菜单编码
+					// mcuWifi.recvInf.u8Recv_Buff[13] = 0x00;
+					// mcuWifi.recvInf.u8Recv_Buff[14] = 0x00;
+					// mcuWifi.recvInf.u8Recv_Buff[15] = 0x00;
+
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x00B1:									//APP取消工作
+					RECV_DATA_LENGTH_H = 0x00;  				//数据长度（为返回信息的数据长度）
+					RECV_DATA_LENGTH_L = 6;
+
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;		//返回成功信息
+
+					mcuWifi.recvInf.u8Recv_Buff[12] = 0x00;		//返回菜单编码
+					mcuWifi.recvInf.u8Recv_Buff[13] = 0x00;
+					mcuWifi.recvInf.u8Recv_Buff[14] = 0x00;
+					mcuWifi.recvInf.u8Recv_Buff[15] = 0x00;
+
+//					ChangeMachineStatus(SYS_MODE, SYS_MODE_STANDBY);	//转到待机状态
+//					ChangeMachineStatus(LAMP_ENABLE, DISABLE);	//关闭炉灯
+
+					g_sysType = SysModeStandby;
+					g_LedOpenFlag = 0;
+
+					mcuWifi.sendInf.u16FrameLenBuff	= 16;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;					//需要返回接收成功信息
+
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x00B2:									//APP查询设备状态
+					mcuWifi.u2CmdQueryDeviceStaFlag = 1;
+					break;
+
+				case 0x1000:									//开关炉灯
+//					ChangeMachineStatus(LAMP_ENABLE, mcuWifi.recvInf.u8Recv_Buff[10]);
+
+					mcuWifi.u2CmdSnapshotflag	= 0;			//取消抓图
+					mcuWifi.u8SnapshotCnt		= 0;			//抓图倒计时清零
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x1001:									//开关转叉
+//					ChangeMachineStatus(ROT_ENABLE, mcuWifi.recvInf.u8Recv_Buff[10]);
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					// mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x1002:										//APP参数修改
+//					ChangeMachineStatus(NOW_WORK_TEMP_TOP,			mcuWifi.recvInf.u8Recv_Buff[10]);
+//					ChangeMachineStatus(NOW_WORK_TEMP_BOT,			mcuWifi.recvInf.u8Recv_Buff[11]);
+//					ChangeMachineStatus(NOW_WORK_TIME_ALL_MINUTE,	mcuWifi.recvInf.u8Recv_Buff[12]);
+
+					g_nowStepworkTemp	= mcuWifi.recvInf.u8Recv_Buff[10];
+					g_workTimeAll		= mcuWifi.recvInf.u8Recv_Buff[12];
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x1004:									//预热跳转
+					// nowSysMode = (unsigned char)(ReadMachineStatus(SYS_MODE));
+					// if(nowSysMode == SYS_MODE_PRE_HEAT)			//若单前是预热阶段，跳转到自主烘焙工作状态
+					// {
+					// 	ChangeMachineStatus(SYS_MODE, SYS_MODE_DIY_WORKING);
+					// 	ChangeMachineStatus(NOW_WORK_STEP, 1);	//从第一步开始执行
+					// }
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x1005:									//预热保持
+					//赋值预热保持使能和预热保持时间
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x2000:									//WIFI模组下发摄像头状态信息
+					mcuWifi.u8CammerStatus = mcuWifi.recvInf.u8Recv_Buff[10];
+					if(mcuWifi.u8CammerStatus)					//若接收数据非0，表示摄像头损坏
+					{
+						mcuWifi.u8IdentificationErrData = CAMMER_BROKEN;
+					}
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					break;
+
+				case 0x820B:									//摄像头抓图
+					/* nowSysMode = (unsigned char)(ReadMachineStatus(SYS_MODE));
+					// if((nowSysMode == SYS_MODE_STANDBY) || (nowSysMode == SYS_MODE_BLACK) || \
+					//    (nowSysMode == SYS_MODE_DIY_SETTING) || (nowSysMode == SYS_MODE_SELF_CHECK) || \
+					//    (nowSysMode == SYS_MODE_PID))			//待机，黑屏，自主烘焙设置，自检，PID状态允许抓图
+					// {
+					// 	if(nowSysMode != SYS_MODE_DIY_SETTING)	//？？？？？？非自主设置状态时，若启动摄像头抓图，返回待机状态？？？？？？？？
+					// 	{
+					// 		ChangeMachineStatus(SYS_MODE, SYS_MODE_STANDBY);
+					// 	}
+
+					// 	mcuWifi.u2CmdSnapshotflag = 1;
+					// 	ChangeMachineStatus(LAMP_ENABLE, ENABLE);	//开启炉灯
+					// }*/
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x820A:										//设备启动智能烘焙
+					// nowSysMode = (unsigned char)(ReadMachineStatus(SYS_MODE));
+
+						mcuWifi.u2CmdSmartBakingFlag = 1;
+						g_sysType = SYS_MODE_SMART_IDENTIFICATION;	//转到智能识别状态
+
+						g_LedOpenFlag = 1;
+						//炉灯一直亮，在驱动中开启
+
+					gU8_buzzerType = BUZ_HP_KEY;
+					break;
+
+				case 0x2002:									//云服务下发异常信息
+					mcuWifi.u8IdentificationErrData = mcuWifi.recvInf.u8Recv_Buff[10];
+					mcuWifi.u8BurntStatus			= mcuWifi.recvInf.u8Recv_Buff[11];
+					mcuWifi.u8PictureBlur			= mcuWifi.recvInf.u8Recv_Buff[12];
+					mcuWifi.u8FoodLocation			= mcuWifi.recvInf.u8Recv_Buff[13];
+					mcuWifi.u8FoodSize				= mcuWifi.recvInf.u8Recv_Buff[14];
+
+					mcuWifi.u16RecommandMenu_1 = (((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[17])) << 8) + \
+												 ((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[18]));		//只取后面的16位（协议菜单编码为32位）
+
+					mcuWifi.u16RecommandMenu_2 = (((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[21])) << 8) + \
+												 ((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[22]));		//只取后面的16位（协议菜单编码为32位）
+
+					mcuWifi.u16RecommandMenu_3 = (((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[25])) << 8) + \
+												 ((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[26]));		//只取后面的16位（协议菜单编码为32位）
+
+					mcuWifi.u16RecommandMenu_4 = (((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[29])) << 8) + \
+												 ((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[30]));		//只取后面的16位（协议菜单编码为32位）
+
+					mcuWifi.u16RecommandMenu_5 = (((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[33])) << 8) + \
+												 ((unsigned int)(mcuWifi.recvInf.u8Recv_Buff[34]));		//只取后面的16位（协议菜单编码为32位）
+
+//					if(nowSysMode == SYS_MODE_SMART_WORKING)
+//					{
+//						ChangeMachineStatus(SYS_MODE, SYS_MODE_AUTO_ERR);	//跳转到智能识别失败状态
+//						//炉灯一直亮，在驱动中开启
+//					}
+//					else if((nowSysMode == SYS_MODE_PRE_HEAT) || (nowSysMode == SYS_MODE_DIY_WORKING) || (nowSysMode == SYS_MODE_SMART_WORKING))		//预热，自主烘焙，智能烘焙状态时
+//					{
+//						if(mcuWifi.u8BurntStatus)
+//						{
+//							mcuWifi.u8BurntStatus = 0;
+
+//							if(((unsigned char)ReadMachineStatus(SYS_MODE)) != SYS_MODE_ERROR)
+//							{
+//								ChangeMachineStatus(SYS_MODE, SYS_MODE_ERROR);		//转到报警状态
+//								ChangeMachineStatus(ERR_NUM, FOOD_BURNT_E09);
+//							}
+//						}
+//					}
+
+					RECV_DATA_LENGTH_H = 0x00;					//数据长度（高8位）
+					RECV_DATA_LENGTH_L = 0x02;					//数据长度（低8位）
+					mcuWifi.recvInf.u8Recv_Buff[10] = 0x00;		//0000表示成功
+					mcuWifi.recvInf.u8Recv_Buff[11] = 0x00;
+					mcuWifi.sendInf.u16FrameLenBuff = 12;
+					mcuWifi.u2ReturnSuccesAckFlag = 1;			//需要返回接收成功信息
+
+					mcuWifi.u2CmdDeviceReprotflag = 1;			//设备上报状态
+					break;
+			}
+		}
+
+		if(mcuWifi.u2ReturnSuccesAckFlag == 0)					//若不需要返回ACK
+		{
+			mcuWifi.recvType = RECV_GOING;						//继续执行接收
+		}
+		else
+		{
+			//在将ACK信息赋值完后再执行接收
+		}
+		
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Description:		发送和接收处理
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void SendAndRecvDeal(void)
+{
+	SendUart();
+
+	if(mcuWifi.sendInf.u8IntervalTime)					//发送间隔时间倒计时
+	{
+		mcuWifi.sendInf.u8IntervalTime--;
+	}
+
+	if(mcuWifi.sendInf.u2WifiAckFlag)					//等待响应
+	{
+		if(mcuWifi.u8AckTimeCnt)
+		{
+			mcuWifi.u8AckTimeCnt--;
+		}
+
+		if(mcuWifi.u8AckTimeCnt == 0)					//响应等待时间超时后，清零需求响应标志，使可以重新发送指令
+		{
+			mcuWifi.sendInf.u2WifiAckFlag = 0;
+		}
+	}
+	
+	RecvUart();
+	if(mcuWifi.recvInf.u8OutTime)						//接收数据超时倒计时
+	{
+		mcuWifi.recvInf.u8OutTime--;
+	}
+
+	if(mcuWifi.recvInf.u8OutTime == 0)					//MCU数据接收时间超时，重新开始接收
+	{
+		mcuWifi.recvInf.u16DataCnt		= 0;
+		mcuWifi.recvInf.u2HeadOkFlag_H 	= 0;
+		mcuWifi.recvInf.u2HeadOkFlag_L 	= 0;
+		// mcuWifi.recvType	 			= RECV_OVER;
+	}
+}
+
+/*-----------------------------------------------------------------------------
+Description:		Wifi处理
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void WifiDealFunction(void)
+{
+	if(mcuWifi.u2HandsOkflag == 0)							//未握手时
+	{
+		mcuWifi.u8CmdBuffNum = 0;							//缓存指令数清零
+		mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0xCCC0;			//赋值握手指令
+		mcuWifi.u8CmdBuffNum++;								//指令缓存值加1
+
+		// if(mcuWifi.u8AckTimeCnt == 0)						//未握手时，响应等待时间超时后，清零需求响应标志，使握手指令一直发送
+		// {
+		// 	mcuWifi.sendInf.u2WifiAckFlag = 0;
+		// }
+	}
+	else													//已握手成功
+	{
+		if(mcuWifi.u2CmdSmartlinkflag)						//启动smartLink_start
+		{
+			mcuWifi.u2CmdSmartlinkflag = 0;
+			mcuWifi.u8WifiStatus = SMART_LINK_OK_WAIT;
+
+			mcuWifi.u8CmdBuffNum = 0;
+			mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0xCCC2;
+			mcuWifi.u8CmdBuffNum++;
+		}
+		else
+		{
+			if(mcuWifi.u2CmdFirmwareUpgradeFlag == 1)		//设备要求固件升级指令
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)	//当前命令数未超过缓存值时，加载命令
+				{
+					mcuWifi.u2CmdFirmwareUpgradeFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0xCCC5;
+					mcuWifi.u8CmdBuffNum++;
+				}	
+			}
+			else if(mcuWifi.u2CmdSmartBakingFlag == 1)		//智能烘焙指令
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdSmartBakingFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0x820A;
+					mcuWifi.u8CmdBuffNum++;
+				}	
+			}
+			else if(mcuWifi.u2CmdRebootWifiFlag == 1)		//wifi重启指令
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdRebootWifiFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0xCCC9;
+					mcuWifi.u8CmdBuffNum++;
+				}	
+			}
+			else if(mcuWifi.u2CmdQueryDeviceStaFlag == 1)	//查询设备状态指令
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdQueryDeviceStaFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0x00B2;
+					mcuWifi.u8CmdBuffNum++;
+				}
+			}	
+			else if(mcuWifi.u2CmdDeviceReprotflag == 1)		//设备主动上报状态
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdDeviceReprotflag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0x5000;
+					mcuWifi.u8CmdBuffNum++;
+				}
+			}
+			else if(mcuWifi.u2CmdKeyReportFlag == 1)		//按键行为上报
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdKeyReportFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0x6003;
+					mcuWifi.u8CmdBuffNum++;
+				}
+			}
+			else if(mcuWifi.u2CmdRemoveLinkFlag == 1)		//解绑指令0x6001
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdRemoveLinkFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0x6001;
+					mcuWifi.u8CmdBuffNum++;
+				}
+			}
+			else if(mcuWifi.u2CmdGetWiFiStatusFlag ==1)		//获取Wifi状态指令
+			{
+				if(mcuWifi.u8CmdBuffNum < CMD_NUM_BUFF_MAX)
+				{
+					mcuWifi.u2CmdGetWiFiStatusFlag = 0;
+					mcuWifi.u16CmdCode_Buff[mcuWifi.u8CmdBuffNum] = 0xCCC7;
+					mcuWifi.u8CmdBuffNum++;
+				}
+			}
+			else
+			{
+
+			}
+		}
+	}
+
+	SendAndRecvDeal();										//数据发送和接收处理
+}
+
+/*-----------------------------------------------------------------------------
+Description:		Wifi串口处理的中断服务函数
+Input:				void
+Return:				void
+History:			无
+-----------------------------------------------------------------------------*/
+void IntUart0(void) interrupt 4
+{
+	unsigned char recvBuff = 0;
 	
 	_push_(INSCON);
-	BANK0_SET;	
-	if(RI)	
+	BANK0_SET;
+
+	if(RI)
 	{
 		RI = 0;
 
-		if(!RevWifiEnd_flag)
+		if(mcuWifi.recvType == RECV_GOING)				//处于接收状态时，处理接收信息
 		{
-			recvSbuf = SBUF;
-			RevWifiworking_flag= 1;
-			recvOutTime = RECV_OUT_TIMER;
-
-			if((frameHead_H_Flag==1) && (frameHead_L_Flag== 1))
-			{
-				recvDataCount++;
-				Recv_Buf[recvDataCount]=recvSbuf;
-
-				if(recvDataCount == 9)
-				{
-					recvFrameLen = Recv_Buf[8];
-					recvFrameLen <<= 8;
-					recvFrameLen += Recv_Buf[9];
-					recvFrameLen += 10;				//����ǰʮλ��֡ͷ
-				}
-				if(recvDataCount > 9)
-				{
-					if(recvDataCount >= recvFrameLen)
-					{
-						recvDataCount = 0;
-						frameHead_H_Flag = 0;
-						frameHead_L_Flag = 0;
-						RevWifiworking_flag= 0;
-						RevWifiEnd_flag= 1;	
-					}
-				}
-			}
+			recvBuff = SBUF;
 			
-			if((frameHead_H_Flag== 1) && (frameHead_L_Flag== 0))
+			mcuWifi.recvInf.u8OutTime = RECV_OUT_TIMER;	//重新计接收超时时间
+
+			if((mcuWifi.recvInf.u2HeadOkFlag_H == 1) && (mcuWifi.recvInf.u2HeadOkFlag_L == 1))	//头码的正确
 			{
-				if(recvSbuf == 0xFB)
+				mcuWifi.recvInf.u16DataCnt++;
+				mcuWifi.recvInf.u8Recv_Buff[mcuWifi.recvInf.u16DataCnt] = recvBuff;
+
+				if(mcuWifi.recvInf.u16DataCnt == 9)		//接收到第10个数据，赋值帧的总长度
 				{
-					frameHead_L_Flag=1;
-					Recv_Buf[0] = 0xFA;
-					Recv_Buf[1] = 0xFB;
-					recvDataCount	= 1;
+					mcuWifi.recvInf.u16FrameLen = mcuWifi.recvInf.u8Recv_Buff[8];
+					mcuWifi.recvInf.u16FrameLen <<= 8;
+					mcuWifi.recvInf.u16FrameLen += mcuWifi.recvInf.u8Recv_Buff[9];
+					mcuWifi.recvInf.u16FrameLen += 10;	//加上前十位的帧头
 				}
 				else
 				{
-					frameHead_H_Flag= 0;
+					if(mcuWifi.recvInf.u16DataCnt > 9)
+					{
+						if(mcuWifi.recvInf.u16DataCnt >= mcuWifi.recvInf.u16FrameLen)	//所有数据接收完成
+						{
+							mcuWifi.recvInf.u16DataCnt		= 0;
+							mcuWifi.recvInf.u2HeadOkFlag_H	= 0;
+							mcuWifi.recvInf.u2HeadOkFlag_L	= 0;
+							mcuWifi.recvType				= RECV_OVER;
+						}
+					}
 				}
 			}
-			
-			if((frameHead_H_Flag== 0) && (frameHead_L_Flag== 0))
+			else if(mcuWifi.recvInf.u2HeadOkFlag_H == 1)	//头码高8位正确
 			{
-				if(recvSbuf == 0xFA)
+				if(recvBuff == HEADER_CODE_L)				//头码低8位正确
 				{
-					frameHead_H_Flag= 1;	
+					mcuWifi.recvInf.u2HeadOkFlag_L = 1;
+
+					RECV_HEADER_H = HEADER_CODE_H;
+					RECV_HEADER_L = HEADER_CODE_L;
+
+					mcuWifi.recvInf.u16DataCnt = 1;			// 1表示已有2个数据
+				}
+				else										//头码高位正确后紧接着的数据，头码低8位错误，重新识别高8位
+				{
+					mcuWifi.recvInf.u2HeadOkFlag_H = 0;
+				}
+			}
+			else											//未识别到头码的高位值
+			{
+				if(recvBuff == HEADER_CODE_H)				//识别到头码的高位值时，置高位头码标志
+				{
+					mcuWifi.recvInf.u2HeadOkFlag_H = 1;
 				}
 			}
 		}
@@ -368,944 +1506,22 @@ void INT_EUART0(void) interrupt 4
 
 	if(TI)
 	{
-		TI=0;
+		TI = 0;
 
-
-		sendDataCount++;
-		if(sendDataCount == sendFrameLen)
+		mcuWifi.sendInf.u16DataCnt++;
+		if(mcuWifi.sendInf.u16DataCnt >= mcuWifi.sendInf.u16FrameLen)	//帧数据发送完毕
 		{
-			sendDataCount = 0;
-			MCUSendWorking_Flag=0;	//
-			sendIntervalTime = SEND_INTERVAL_TIMER;
+			mcuWifi.sendInf.u16DataCnt = 0;
+			mcuWifi.sendType = SEND_OVER;
+			mcuWifi.sendInf.u8IntervalTime = SEND_INTERVAL_TIMER;		//重置发送间隔倒计时
 		}
 		else
 		{
-			SBUF = Send_Buf[sendDataCount];	//
-			MCUSendWorking_Flag= 1;
+			SBUF = mcuWifi.sendInf.u8Send_Buff[mcuWifi.sendInf.u16DataCnt];
+
+			mcuWifi.sendType = SEND_GOING;
 		}
-
-
 	}
-	BANK0_SET;			
+
 	_pop_(INSCON);
-}
-
-/****************************
-�������ƣ�
-�������ܣ������λУ��λ
-����������
-��������ֵ��
-����ʱ�䣺Zhengmingwei-20150728
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-unsigned char SumMakeVerify(unsigned char *PBuf, unsigned int Len)
-{
-    unsigned char Verify = 0;
-    while(Len--)
-    {
-    	Verify = Verify + (*PBuf);
-      ++PBuf;
-    }
-    return (~Verify + 1);
-}
-
-/****************************
-�������ƣ�
-�������ܣ����ܰ�λУ��λ
-����������
-��������ֵ��
-����ʱ�䣺Zhengmingwei-20150728
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-unsigned char SumVerify(unsigned char *PBuf, unsigned int Len)
-{
-	unsigned char Verify = 0;
-	while(Len--)
-	{
-	  Verify = Verify + (*PBuf);
-	  PBuf ++;
-	}
-	return (Verify == 0); //���verifyΪ0 ����1 ���򷵻�0
-}
-
-void KeyAction_buf(uchar lenNumber)
-{
-	uchar i=0;
-
-	for(i=0;i<lenNumber;i++)
-	{
-
-		Send_Buf[11+i]=MCUSendWifiDate.KeyCountN[i];
-
-	}	
-	
-}
-
-/****************************
-�������ƣ�
-�������ܣ�
-����������
-��������ֵ��
-����ʱ�䣺
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-unsigned int SendUartData(unsigned int len)
-{
-	Send_Buf[0] = SN_start0;        						//֡ͷ��λ
-	Send_Buf[1] = SN_start1;				 					//֡ͷ��λ
-	Send_Buf[2] = Contract_Verios;						//ͨ�Ű汾
-	Send_Buf[3] = 0x00;					 				//֡����
-	Send_Buf[4] = 0x00;					 				//֡���
-	Send_Buf[5]	= 0x00;					 				//���ӿ�����; 0x00:��������ָ��Ҫ��Է��ظ�
-	Send_Buf[len] = SumMakeVerify(Send_Buf,len);
-	sendDataCount = 0;
-	McuSendWifi_ACK_flag=0;		 				//1��ʾ��ҪӦ���ʶλ��0��ʾ����Ҫ
-	ackTime = ACK_TIMER;
-	MCUSendWorking_Flag=1;
-	SBUF = Send_Buf[0];
-	return (len + 1);
-}
-
-void SendUart(void)
-{
-	unsigned char i = 0;
-	if((McuSendWifi_ACK_flag== 0) && (MCUSendWorking_Flag== 0) && (sendIntervalTime == 0))
-	{
-		if(cmdNum > 0)
-		{
-			cmdCode = CmdCode_Buf[0];
-			cmdNum--;
-			for(i = 0;i < cmdNum;i++)
-			{
-				CmdCode_Buf[i] = CmdCode_Buf[i + 1];
-			}
-			MCUSendStart_Flag = 1;		
-		}
-	}
-
-	if(MCUSendStart_Flag)
-	{
-		MCUSendStart_Flag= 0;
-		switch(cmdCode)
-		{
-			case 0xCCC0:
-				Send_Buf[6] = 0xcc;					//ָ���λ 
-				Send_Buf[7] = 0xc0;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 0x06;					//���ݳ���
-				Send_Buf[10] = KXModel_H; 		 	//�豸�ͺŸ�λ
-				Send_Buf[11] = KXModel_L ; 		 	//�豸�ͺŵ�λ �翾��KX-38I95 0x3c02
-				Send_Buf[12] = 0x00; 				//�豸ͨ�Ű汾
-				Send_Buf[13] = PROGRAM_VER_GB;		//�豸�̼��汾
-				Send_Buf[14] = 0x00; 				//ͨ�����ݳ��ȸ�λ
-				Send_Buf[15] = 0xFF; 		 		//ͨ�����ݳ��ȵ�λ
-				sendFrameLen = 16;
-				sendFrameLen = SendUartData(sendFrameLen);	
-				McuSendWifi_ACK_flag=1;
-				
-				break;
-			case 0xCCC2:
-				MCUSmartlinkWorking_Flag = 1;
-				//smarkLinkStatus = 0x00;  			//ȥ�����WiFi״̬����˸������
-				Send_Buf[6] = 0xcc;					//ָ���λ 
-				Send_Buf[7] = 0xc2;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 0x00;					//���ݳ���
-				sendFrameLen = 10;
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=1;
-				break;
-			case 0x6001:								//���ָ��
-				Send_Buf[6] = 0x60;
-				Send_Buf[7] = 0x01;
-				Send_Buf[8] = 0;						//���ݳ��ȸ�λ
-				Send_Buf[9] = 2;						//���ݳ��ȵ�λ
-				Send_Buf[10] = 0x00; 					
-				Send_Buf[11] = 0x00;
-				sendFrameLen = 12;
-				sendFrameLen = SendUartData(sendFrameLen);
-				Send_Buf[5] = 0x40;
-				McuSendWifi_ACK_flag= 0; 				
-				break;
-			case 0xCCC5:                             //�豸Ҫ��̼�����   
-				Send_Buf[6] = 0xcc;					//ָ���λ 
-				Send_Buf[7] = 0xc5;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 0x02;					//���ݳ���
-				Send_Buf[10] = 0x00;				//ÿ֡���ȸ�λ
-				Send_Buf[11] = 0x01;				//ÿ֡���ȵ�λ �ݶ�1
-				sendFrameLen = 12;
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=1;
-				break;
-
-			
-			case 0xCCC9:                             //����ģ��   
-				Send_Buf[6] = 0xcc;					//ָ���λ 
-				Send_Buf[7] = 0xc9;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 0x00;					//���ݳ���
-				sendFrameLen = 10;
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=1;
-				break;
-
-			case 0x5000:                            //�����ϱ�״̬   
-				Send_Buf[6] = 0x50;					//ָ���λ 
-				Send_Buf[7] = 0x00;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 45;					//���ݳ���
-				Send_Buf[10] =MCUSendWifiDate.McuWorkSta; //����״̬     0x5000
-
-				Send_Buf[11] =MCUSendWifiDate.McuMumeNumber_0;  //�˰����� 
-
-				Send_Buf[12] =MCUSendWifiDate.McuMumeNumber_1;  //�˰����� 
-				
-			 	Send_Buf[13] =MCUSendWifiDate.McuMumeNumber_2;  //�˰����� 
-
-				Send_Buf[14] =MCUSendWifiDate.McuMumeNumber_3;  //�˰����� 
-
-				Send_Buf[15] =MCUSendWifiDate.McuyuyueEn; 		 //ԤԼʹ�ܣ�0x01 ʹ��
-
-				Send_Buf[16] =MCUSendWifiDate.McuyuyueFlag; 	 //ԤԼ��־λ 0x01 Ĭ����ԤԼ
-
-				Send_Buf[17] =MCUSendWifiDate.McuyuyueTimer_H; 	  //ԤԼʱ��
-
-				Send_Buf[18] =MCUSendWifiDate.McuyuyueTimer_L; 	  //ԤԼʱ��
-
-				Send_Buf[19] =MCUSendWifiDate.McuyureEn; 		 //Ԥ��ʹ�ܣ�0x01 ʹ��
-
-				Send_Buf[20] =MCUSendWifiDate.McuyureFlag; 		 //Ԥ�ȱ�־λ 0x01 Ĭ����Ԥ��
-
-				Send_Buf[21] =MCUSendWifiDate.McuyureTimer_H; 		 //Ԥ��ʱ��
-
-				Send_Buf[22] =MCUSendWifiDate.McuyureTimer_L; 		 //Ԥ��ʱ��
-
-				Send_Buf[23] =MCUSendWifiDate.McuyureKeepFlag; 		 //Ԥ�ȱ���
-
-				Send_Buf[24] =MCUSendWifiDate.McuyureKeepTimer; 	 //Ԥ�ȱ���ʱ��
-
-				Send_Buf[25] =MCUSendWifiDate.WorkStep1_Top_Temp; 	 	//������һ���Ϲܵ��¶�
-
-				Send_Buf[26] =MCUSendWifiDate.WorkStep1_Bot_Temp;  		//������һ���¹ܵ��¶�
-				
-				Send_Buf[27] =MCUSendWifiDate.WorkStep1_work_Time;  	//������һ������ʱ��
-
-				Send_Buf[28] =MCUSendWifiDate.WorkStep2_Top_Temp;  		//������2���Ϲܵ��¶�
-
-				Send_Buf[29] =MCUSendWifiDate.WorkStep2_Bot_Temp;	  	//������2���¹ܵ��¶�
-				
-				Send_Buf[30] =MCUSendWifiDate.WorkStep2_work_Time;  	//������2������ʱ��
-
-				
-				Send_Buf[31] =MCUSendWifiDate.WorkStep3_Top_Temp;		//������3���Ϲܵ��¶�
-				
-				Send_Buf[32] =MCUSendWifiDate.WorkStep3_Bot_Temp;		//������3���¹ܵ��¶�
-					
-				Send_Buf[33] =MCUSendWifiDate.WorkStep3_work_Time;		//������3������ʱ��
-
-				Send_Buf[34] =MCUSendWifiDate.Temp_Ajust_Line;    		//�¶ȵ��� �ֽ��
-				
-				Send_Buf[35] =MCUSendWifiDate.Temp_Ajust_small;    		//�¶ȵ��� С����
-
-				Send_Buf[36] =MCUSendWifiDate.Temp_Ajust_large;    		//�¶ȵ��� �󲽳�
-
-				Send_Buf[37] =MCUSendWifiDate.Temp_Ajust_samllest;    	//�¶ȵ��� ��С�¶�
-
-				Send_Buf[38] =MCUSendWifiDate.Temp_Ajust_largeest;    	//�¶ȵ��� ����¶�
-
-				Send_Buf[39] =MCUSendWifiDate.Timer_work_leftMin;    	//ʣ�๤��ʱ��
-
-				Send_Buf[40] =MCUSendWifiDate.Timer_work_leftsecond;    //ʣ�๤��ʱ������
-
-				Send_Buf[41] =MCUSendWifiDate.Timer_Ajust_Min;    		//�ɵ���С
-
-				Send_Buf[42] =MCUSendWifiDate.Timer_Ajust_Max;    		//�ɵ����
-
-				Send_Buf[43] =MCUSendWifiDate.zhuanchaSta;              //ת��״̬ 1�� 0��
-
-				Send_Buf[44] =MCUSendWifiDate.LudengSta;              	//¯��״̬	1�� 0��
-
-				Send_Buf[45] =MCUSendWifiDate.RealTemp_Top;				//�Ϲ�ʵʱ�¶�
-
-				Send_Buf[46] =MCUSendWifiDate.RealTemp_Bot;				//�¹�ʵʱ�¶�
-
-				Send_Buf[47] =MCUSendWifiDate.Resver_1;					//Ԥ��
-				Send_Buf[48] =MCUSendWifiDate.Resver_2;					//Ԥ��
-				Send_Buf[49] =MCUSendWifiDate.Resver_3;					//Ԥ��
-				Send_Buf[50] =MCUSendWifiDate.Resver_4;					//Ԥ��
-				Send_Buf[51] =MCUSendWifiDate.Resver_5;					//Ԥ��
-				Send_Buf[52] =MCUSendWifiDate.Resver_6;					//Ԥ��
-			
-
-				Send_Buf[53] =MCUSendWifiDate.ErroDate_H;              //���ϴ���
-
-				Send_Buf[54] =MCUSendWifiDate.ErroDate_L;              //���ϴ���	
-							
-				sendFrameLen = 55;
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=0;
-				break;
-			
-			case 0x820A:
-				
-				Send_Buf[6] = 0x82;					//ָ���λ 
-				Send_Buf[7] = 0x0A;					//ָ���λ
-				Send_Buf[8] = 0x00;					//���ݳ���
-				Send_Buf[9] = 0x00;					//���ݳ���
-				sendFrameLen = 10;
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=0;
-				break;
-
-
-			case 0x6003:
-				
-				Send_Buf[6] = 0x60;									//ָ���λ 
-				Send_Buf[7] = 0x03;									//ָ���λ
-				Send_Buf[8] = 0x00;									//���ݳ���
-				Send_Buf[9] = (MCUSendWifiDate.KeyNumber+1);		//���ݳ���
-				Send_Buf[10] = (MCUSendWifiDate.KeyNumber);	     	//��������
-				KeyAction_buf(MCUSendWifiDate.KeyNumber);
-				sendFrameLen=(MCUSendWifiDate.KeyNumber+11);
-				sendFrameLen = SendUartData(sendFrameLen);
-				McuSendWifi_ACK_flag=0;
-				break;
-				
-
-				
-				default:
-				break;
-		}	
-	}
-}                  
-
-
-/****************************
-
-*******************************/
-unsigned int SendUartAck(unsigned int len)
-{
-   	unsigned int i;
-	McuSendWifi_ACK_flag= 0; //����ҪӦ��
-	//cmdNum = 0;
-	for(i = 0; i < len;i++)
-	{
-		Send_Buf[i] = Recv_Buf[i];
-	}
-	Send_Buf[5] = 0x80; //mcu���ճɹ��ظ�������wifi��
-	Send_Buf[len] = SumMakeVerify(Send_Buf,len);
-	sendDataCount = 0;
-	MCUSendWorking_Flag= 1;
-	SBUF = Send_Buf[0];
-	return(len + 1);
-}
-
-
-
-void CommRecvData(void)//����wifi���ݳɹ�
-{
-	Recv_Buf[8]  = 0x00;
-	Recv_Buf[9]  = 0x02;
-	Recv_Buf[10] = 0x00;
-	Recv_Buf[11] = 0x00; 	 
-	sendFrameLen = 12;
-	sendFrameLen = SendUartAck(sendFrameLen);
-}
-
-void returnData(void)//����wifi���ݳɹ�
-{
-	// Recv_Buf[8]  = 0x00;
-	// Recv_Buf[9]  = 0x02;
-	// Recv_Buf[10] = 0x00;
-	// Recv_Buf[11] = 0x00; 	 
-	sendFrameLen = 11;
-	sendFrameLen = SendUartAck(sendFrameLen);
-}
-
-
-/****************************
-�������ƣ�
-�������ܣ�
-����������
-��������ֵ��
-����ʱ�䣺
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-void RecvUart(void)
-{
-	unsigned char verify;
-	unsigned int cmdRecv;
-
-   unsigned char i = 0;
-   unsigned char j = 0;
-   
-	if(RevWifiworking_flag== 0)
-	{
-		if(RevWifiEnd_flag)
-		{
-			RevWifiEnd_flag=0;
-			verify = SumVerify(Recv_Buf,(recvFrameLen + 1));
-			if(verify == 1)
-			{
-				cmdRecv = Recv_Buf[6];
-				cmdRecv = cmdRecv << 8;
-				cmdRecv = cmdRecv + Recv_Buf[7];
-				switch(cmdRecv)
-				{
-					case 	0xCCC0:
-						if((Recv_Buf[10] == 0x00) && (Recv_Buf[11] == 0x00))	    
-						{
-							HandsCmd_OK_flag=1;		//���ֳɹ�
-							MCURevDate_hands.WIFISta = Recv_Buf[12];
-							McuSendWifi_ACK_flag=0;
-							cmdNum = 0;
-						}
-						break;
-					case 	0xCCC2:
-						if((Recv_Buf[10] == 0x00) && (Recv_Buf[11] == 0x00))
-						{
-							McuSendWifi_ACK_flag=0;
-							CmdSmartlinkStart_flag= 0;	//smartLinkָ��
-							cmdNum = 0;
-						}
-						break;	
-					case 0xCCD0:
-						if(Recv_Buf[5] == 0x00)
-						{
-							MCURevDate_hands.WIFISta=Recv_Buf[10];
-							CommRecvData();
-						}
-						else //smartlink ������
-						{
-							MCURevDate_hands.WIFISta=Recv_Buf[10];
-						}
-						
-						if(MCUSmartlinkWorking_Flag)
-						{
-							if((MCURevDate_hands.WIFISta != 0) && (MCURevDate_hands.WIFISta != 1))	//����·������ָʾ�Ƴ�����
-							{
-								MCUSmartlinkWorking_Flag = 0; 
-								CmdSmartlinkStart_flag= 0;	//������ķ�ֹһֱ����smartLinkָ��
-							}
-						}
-						break;
-
-					case 0xCCC5:   //CCC5�豸Ҫ��̼�����
-						if((Recv_Buf[10] == 0x00)&&(Recv_Buf[10] == 0x00))//�ɹ�
-						{
-							MCURevWifiDate.CCC5GoUpAck=1;	
-						}
-						else //
-						{
-							MCURevWifiDate.CCC5GoUpAck=0;
-						}
-						
-						
-						break;
-					case 0xCCC9:   //����ģ��
-						if((Recv_Buf[10] == 0x00)&&(Recv_Buf[10] == 0x00))//�ɹ�
-						{
-							MCURevWifiDate.CCC9ReBootAck=1;	
-						}
-						else //
-						{
-							MCURevWifiDate.CCC9ReBootAck=0;	
-						}
-						
-						break;		
-				
-					case 0xCCD1:									//�̼���������ָ��
-						if(g_sysType == 1) //����
-						{
-							recvFirmWareEdit = Recv_Buf[10];
-							/*Sector_Erase(0x0300,1); 			//�̼�����������Կ
-							Byte_Write1(0x0300,0x55,1); 		//д����Կ0x55
-							Byte_Write1(0x0301,0xaa,1); 		//д����Կ0xaa */	
-							Recv_Buf[8] = 0;
-							Recv_Buf[9] = 4;
-							Recv_Buf[10] = 0x00;
-							Recv_Buf[11] = 0x00;
-							Recv_Buf[12] = 0x01;
-							Recv_Buf[13] = 0x00; 
-							sendFrameLen = 14;
-							sendFrameLen = SendUartAck(sendFrameLen); 
-							firmWareHandle_flag = 0x01;				
-						}
-						break;
-					case	0x00B1:										//ȡ��ָ��			
-						//g_systemState = SYS_DEFAULT_STAND_BY;
-						//g_buzzerType  = BUZ_TYP_KEY_AUTO;
-						Recv_Buf[8] = 0;
-						Recv_Buf[9] = 6;
-						Recv_Buf[10] = 0x00;
-						Recv_Buf[11] = 0x00;
-						Recv_Buf[12] = MCUSendWifiDate.McuMumeNumber_0;
-						Recv_Buf[13] = MCUSendWifiDate.McuMumeNumber_0;
-						Recv_Buf[14] = MCUSendWifiDate.McuMumeNumber_0;
-						Recv_Buf[15] = MCUSendWifiDate.McuMumeNumber_0;	
-
-						sendFrameLen = 16;
-						sendFrameLen = SendUartAck(sendFrameLen);						
-						break;
-					case 0x00B2:
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-						Recv_Buf[8]  = 0x00;  //���ݳ���
-						Recv_Buf[9]  = 43;
-						
-						Recv_Buf[10] =MCUSendWifiDate.McuWorkSta; //����״̬     0x5000
-
-						Recv_Buf[11] =MCUSendWifiDate.McuMumeNumber_0;  //�˰����� 
-
-						Recv_Buf[12] =MCUSendWifiDate.McuMumeNumber_1;  //�˰����� 
-				
-			 			Recv_Buf[13] =MCUSendWifiDate.McuMumeNumber_2;  //�˰����� 
-
-						Recv_Buf[14] =MCUSendWifiDate.McuMumeNumber_3;  //�˰����� 
-
-						Recv_Buf[15] =MCUSendWifiDate.McuyuyueEn; 		 //ԤԼʹ�ܣ�0x01 ʹ��
-
-						Recv_Buf[16] =MCUSendWifiDate.McuyuyueFlag; 	 //ԤԼ��־λ 0x01 Ĭ����ԤԼ
-
-						Recv_Buf[17] =MCUSendWifiDate.McuyuyueTimer_H; 	  //ԤԼʱ��
-
-						Recv_Buf[18] =MCUSendWifiDate.McuyuyueTimer_L; 	  //ԤԼʱ��
-
-						Recv_Buf[19] =MCUSendWifiDate.McuyureEn; 		 //Ԥ��ʹ�ܣ�0x01 ʹ��
-
-						Recv_Buf[20] =MCUSendWifiDate.McuyureFlag; 		 //Ԥ�ȱ�־λ 0x01 Ĭ����Ԥ��
-
-						Recv_Buf[21] =MCUSendWifiDate.McuyureTimer_H; 		 //Ԥ��ʱ��
-
-						Recv_Buf[22] =MCUSendWifiDate.McuyureTimer_L; 		 //Ԥ��ʱ��
-
-						Recv_Buf[23] =MCUSendWifiDate.McuyureKeepFlag; 		 //Ԥ�ȱ���
-
-						Recv_Buf[24] =MCUSendWifiDate.McuyureKeepTimer; 	 //Ԥ�ȱ���ʱ��
-
-						Recv_Buf[25] =MCUSendWifiDate.WorkStep1_Top_Temp; 	 	//������һ���Ϲܵ��¶�
-
-						Recv_Buf[26] =MCUSendWifiDate.WorkStep1_Bot_Temp;  		//������һ���¹ܵ��¶�
-						
-						Recv_Buf[27] =MCUSendWifiDate.WorkStep1_work_Time;  	//������һ������ʱ��
-
-						Recv_Buf[28] =MCUSendWifiDate.WorkStep2_Top_Temp;  		//������2���Ϲܵ��¶�
-
-						Recv_Buf[29] =MCUSendWifiDate.WorkStep2_Bot_Temp;	  	//������2���¹ܵ��¶�
-						
-						Recv_Buf[30] =MCUSendWifiDate.WorkStep2_work_Time;  	//������2������ʱ��
-
-						
-						Recv_Buf[31] =MCUSendWifiDate.WorkStep3_Top_Temp;		//������3���Ϲܵ��¶�
-						
-						Recv_Buf[32] =MCUSendWifiDate.WorkStep3_Bot_Temp;		//������3���¹ܵ��¶�
-							
-						Recv_Buf[33] =MCUSendWifiDate.WorkStep3_work_Time;		//������3������ʱ��
-
-						Recv_Buf[34] =MCUSendWifiDate.Temp_Ajust_Line;    		//�¶ȵ��� �ֽ��
-						
-						Recv_Buf[35] =MCUSendWifiDate.Temp_Ajust_small;    		//�¶ȵ��� С����
-
-						Recv_Buf[36] =MCUSendWifiDate.Temp_Ajust_large;    		//�¶ȵ��� �󲽳�
-
-						Recv_Buf[37] =MCUSendWifiDate.Temp_Ajust_samllest;    	//�¶ȵ��� ��С�¶�
-
-						Recv_Buf[38] =MCUSendWifiDate.Temp_Ajust_largeest;    	//�¶ȵ��� ����¶�
-
-						Recv_Buf[39] =MCUSendWifiDate.Timer_work_leftMin;    	//ʣ�๤��ʱ��
-
-						Recv_Buf[40] =MCUSendWifiDate.Timer_work_leftsecond;    //ʣ�๤��ʱ������
-
-						Recv_Buf[41] =MCUSendWifiDate.Timer_Ajust_Min;    		//�ɵ���С
-
-						Recv_Buf[42] =MCUSendWifiDate.Timer_Ajust_Max;    		//�ɵ����
-
-						Recv_Buf[43] =MCUSendWifiDate.zhuanchaSta;              //ת��״̬ 1�� 0��
-
-						Recv_Buf[44] =MCUSendWifiDate.LudengSta;              	//¯��״̬	1�� 0��
-
-						Recv_Buf[45] =MCUSendWifiDate.Resver_1;					//Ԥ��
-						Recv_Buf[46] =MCUSendWifiDate.Resver_2;					//Ԥ��
-						Recv_Buf[47] =MCUSendWifiDate.Resver_3;					//Ԥ��
-						Recv_Buf[48] =MCUSendWifiDate.Resver_4;					//Ԥ��
-						Recv_Buf[49] =MCUSendWifiDate.Resver_5;					//Ԥ��
-						Recv_Buf[50] =MCUSendWifiDate.Resver_6;					//Ԥ��
-					
-
-						Recv_Buf[51] =MCUSendWifiDate.ErroDate_H;              //���ϴ���
-
-						Recv_Buf[52] =MCUSendWifiDate.ErroDate_L;              //���ϴ���	
-									
-	                  	sendFrameLen = 53;
-						sendFrameLen = SendUartAck(sendFrameLen);								
-						break;
-
-					case 0x00B3:
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-						MCURevWifiDate.McuMumeNumber_0=Recv_Buf[9];  //�˰����� 
-
-						MCURevWifiDate.McuMumeNumber_1=Recv_Buf[10];  //�˰����� 
-						
-					 	MCURevWifiDate.McuMumeNumber_2=Recv_Buf[11];  //�˰����� 
-
-						MCURevWifiDate.McuMumeNumber_3=Recv_Buf[12];  //�˰����� 
-
-						MCURevWifiDate.McuyuyueEn=Recv_Buf[13]; 		 //ԤԼʹ�ܣ�0x01 ʹ��
-
-						MCURevWifiDate.McuyuyueFlag=Recv_Buf[14]; 		 //ԤԼ��־λ 0x01 Ĭ����ԤԼ
-
-						MCURevWifiDate.McuyuyueTimer_H=Recv_Buf[15]; 		 //ԤԼʱ��
-
-						MCURevWifiDate.McuyuyueTimer_L=Recv_Buf[16]; 		 //ԤԼʱ��
-
-						MCURevWifiDate.McuyureEn=Recv_Buf[17]; 		 //Ԥ��ʹ�ܣ�0x01 ʹ��
-
-						MCURevWifiDate.McuyureFlag=Recv_Buf[18]; 		 //Ԥ�ȱ�־λ 0x01 Ĭ����Ԥ��
-
-						MCURevWifiDate.McuyureTimer_H=Recv_Buf[19]; 		 //Ԥ��ʱ��
-
-						MCURevWifiDate.McuyureTimer_L=Recv_Buf[20]; 		 //Ԥ��ʱ��
-
-						MCURevWifiDate.McuyureKeepFlag=Recv_Buf[21]; 		 //Ԥ�ȱ���
-
-						MCURevWifiDate.McuyureKeepTimer=Recv_Buf[22]; 	 //Ԥ�ȱ���ʱ��
-
-						MCURevWifiDate.WorkStep1_Top_Temp=Recv_Buf[23]; 	 	//������һ���Ϲܵ��¶�
-
-						MCURevWifiDate.WorkStep1_Bot_Temp=Recv_Buf[24];  		//������һ���¹ܵ��¶�
-						
-						MCURevWifiDate.WorkStep1_work_Time=Recv_Buf[25];  	//������һ������ʱ��
-
-						MCURevWifiDate.WorkStep2_Top_Temp=Recv_Buf[26];  		//������2���Ϲܵ��¶�
-
-						MCURevWifiDate.WorkStep2_Bot_Temp=Recv_Buf[27];	  	//������2���¹ܵ��¶�
-						
-						MCURevWifiDate.WorkStep2_work_Time=Recv_Buf[28];  	//������2������ʱ��
-
-						
-						MCURevWifiDate.WorkStep3_Top_Temp=Recv_Buf[29];		//������3���Ϲܵ��¶�
-						
-						MCURevWifiDate.WorkStep3_Bot_Temp=Recv_Buf[30];		//������3���¹ܵ��¶�
-							
-						MCURevWifiDate.WorkStep3_work_Time=Recv_Buf[31];		//������3������ʱ��
-
-						MCURevWifiDate.Temp_Ajust_Line=Recv_Buf[32];    		//�¶ȵ��� �ֽ��
-						
-						MCURevWifiDate.Temp_Ajust_small=Recv_Buf[33];    		//�¶ȵ��� С����
-
-						MCURevWifiDate.Temp_Ajust_large=Recv_Buf[34];    		//�¶ȵ��� �󲽳�
-
-						MCURevWifiDate.Temp_Ajust_samllest=Recv_Buf[35];    	//�¶ȵ��� ��С�¶�
-
-						MCURevWifiDate.Temp_Ajust_largeest=Recv_Buf[36];    	//�¶ȵ��� ����¶�
-
-						MCURevWifiDate.Timer_Ajust_Min=Recv_Buf[37];    		//�ɵ���С
-
-						MCURevWifiDate.Timer_Ajust_Max=Recv_Buf[38];    		//�ɵ����
-
-						MCURevWifiDate.zhuanchaSta=Recv_Buf[39];              //ת��״̬ 1�� 0��
-
-						MCURevWifiDate.LudengSta=Recv_Buf[40];              	//¯��״̬	1�� 0��
-
-						MCURevWifiDate.Resver_1=Recv_Buf[41];					//Ԥ��
-						MCURevWifiDate.Resver_2=Recv_Buf[42];					//Ԥ��
-						MCURevWifiDate.Resver_3=Recv_Buf[43];					//Ԥ��
-						MCURevWifiDate.Resver_4=Recv_Buf[44];					//Ԥ��
-						MCURevWifiDate.Resver_5=Recv_Buf[45];					//Ԥ��
-						MCURevWifiDate.Resver_6=Recv_Buf[46];					//Ԥ��
-
-						Recv_Buf[8]  = 0x00;  //���ݳ���
-						Recv_Buf[9]  = 6;
-
-						Recv_Buf[10]  = 0x00;  
-					    Recv_Buf[11]  = 0x00;
-
-						Recv_Buf[10]  = MCURevWifiDate.McuMumeNumber_0;  
-					    Recv_Buf[11]  = MCURevWifiDate.McuMumeNumber_1;
-
-						Recv_Buf[10]  = MCURevWifiDate.McuMumeNumber_2;  
-					    Recv_Buf[11]  = MCURevWifiDate.McuMumeNumber_3;
-						
-	                  	sendFrameLen =12;
-						sendFrameLen = SendUartAck(sendFrameLen);								
-						break;
-					
-					// case 0x5001:					//¯������
-					// 	//g_buzzerType = BUZ_TYP_KEY_AUTO;
-						
-					// 	MCURevWifiDate.LudengONOFF=Recv_Buf[10];
-					// 	CommRecvData(); 	
-					// 	break;
-
-					case 0x820C:					//����ץͼ
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-						
-						MCURevWifiDate.LudengONOFF = 1;
-//						g_pictureCnt = 300;				//10msʱ����ץͼ����ʱ
-						returnData(); 	
-						break;
-
-					case 0x5002:						//ת������
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-						
-						MCURevWifiDate.ZhuanchaONOFF=Recv_Buf[10];
-						CommRecvData(); 
-						break;
-
-					case 0x5003:						//�����޸�
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						MCURevWifiDate.WorkRevise_Top_temp=Recv_Buf[10];
-						
-						MCURevWifiDate.WorkRevise_Bot_temp=Recv_Buf[11];
-						
-						MCURevWifiDate.WorkRevise_time=Recv_Buf[12];
-						CommRecvData(); 
-						break;
-
-					case 0x5004:						//Ԥ����ת
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						MCURevWifiDate.Yurejump=1;
-						
-						CommRecvData(); 
-						break;
-						
-					case 0x5005:						//Ԥ�ȱ���
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						MCURevWifiDate.YureKeep=Recv_Buf[10];
-						MCURevWifiDate.YureKeeptime=Recv_Buf[11];
-						
-						CommRecvData(); 
-						break;
-						
-					case 0x5008:						//����ͷ��Ϣ�·�
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						
-						MCURevWifiDate.CamerSta=Recv_Buf[10];	
-
-						MCURevWifiDate.CamerErr=Recv_Buf[11];
-
-						MCURevWifiDate.Camerlast=Recv_Buf[12];
-						
-						CommRecvData(); 
-						break;
-
-						
-					case 0x5009:						//�·�ʳ����Ϣ
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						MCURevWifiDate.FoodMsg=Recv_Buf[10];	
-
-						MCURevWifiDate.FoodMsgLast=Recv_Buf[11];
-
-						CommRecvData(); 
-						break;
-
-					case 0x500A:						//�·�ʶ��ʧ��ԭ��
-						//g_buzzerType = BUZ_TYP_KEY_AUTO;
-
-						MCURevWifiDate.AutoLoseCause=Recv_Buf[10];	
-
-						MCURevWifiDate.AutoLoseCause_0=Recv_Buf[11];	
-
-						MCURevWifiDate.AutoLoseCause_1=Recv_Buf[12];	
-
-						MCURevWifiDate.AutoLoseCause_3=Recv_Buf[13];	
-
-						CommRecvData(); 
-						break;
-
-				
-					
-               
-					default:
-						break;
-				}
-			}
-		}
-	}
-}
-
-
-/****************************
-�������ƣ�
-�������ܣ�
-����������
-��������ֵ��
-����ʱ�䣺
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-void WifiUartExceptionHandl(void)
-{
-	if(McuSendWifi_ACK_flag)
-	{
-		if(ackTime > 0)
-		{
-			ackTime--;
-		}
-		if(ackTime == 0)
-		{
-			MCUSendStart_Flag = 1;
-		}
-	}
-
-	if((recvOutTime == 0) && (RevWifiworking_flag))
-	{
-		recvDataCount = 0;
-		frameHead_H_Flag= 0;
-		frameHead_L_Flag = 0;	
-		RevWifiworking_flag = 0;
-	}
-}
-
-
-/****************************
-�������ƣ�
-�������ܣ�
-����������
-��������ֵ��
-����ʱ�䣺
-��    ע��  
-�޸ļ�Ҫ:
-*******************************/
-void WifiDealFunction(void)
-{
-	//����豸MCUû����WIFIģ��������ֳɹ�
-	if(HandsCmd_OK_flag==0)
-	{
-		cmdNum = 0;
-		if(cmdNum < CMD_NUM_MAX)
-		{
-			CmdCode_Buf[cmdNum] = 0xCCC0;
-			cmdNum++;
-		}
-		
-		SendUart();
-		if(sendIntervalTime > 0)
-		{
-			sendIntervalTime--;
-		}
-		
-		RecvUart();
-
-		if(recvOutTime > 0)
-		{
-			recvOutTime--;
-		}
-		
-		WifiUartExceptionHandl();		
-	}
-	else
-	{
-		if(CmdSmartlinkStart_flag==1)				//smartLink_start
-		{
-			CmdSmartlinkStart_flag = 0;
-			cmdNum = 0;
-			if(cmdNum < CMD_NUM_MAX)
-			{
-				CmdCode_Buf[cmdNum] = 0xCCC2;
-				cmdNum++;
-			}	
-			SendUart();
-			
-			if(sendIntervalTime > 0)
-			{
-				sendIntervalTime--;
-			}
-			
-			RecvUart();
-			
-			if(recvOutTime > 0)
-			{
-				recvOutTime--;
-			}
-			WifiUartExceptionHandl();
-		}
-		else
-		{
-			if(CmdSbGoUpStart_flag== 1)
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdSbGoUpStart_flag=0;
-					CmdCode_Buf[cmdNum] = 0xCCC5;
-					cmdNum++;
-				}	
-			}
-			else if(CmdSbReBootStart_flag== 1)
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdSbReBootStart_flag= 0;
-					CmdCode_Buf[cmdNum] = 0xCCC9;
-					cmdNum++;
-				}
-			}
-			else if(CmdSbReprotStart_flag== 1)				//�����ϱ�
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdSbReprotStart_flag= 0;
-					CmdCode_Buf[cmdNum] = 0x5000;
-					cmdNum++;
-				}	
-			}
-			else if(CmdSbAutoBootStart_flag== 1)			//���ܺ決
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdSbAutoBootStart_flag = 0;
-					CmdCode_Buf[cmdNum] = 0x820A;
-					cmdNum++;
-				}	
-			}
-			else if(CmdSbKeyActionStart_flag== 1)			//������Ϊ�ϱ�
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdSbKeyActionStart_flag = 0;
-					CmdCode_Buf[cmdNum] = 0x1000;
-					cmdNum++;
-				}	
-			}
-			
-			else if(CmdRemovelinkStart_flag== 1) 	//���ָ��0x6001
-			{
-				if(cmdNum < CMD_NUM_MAX)
-				{
-					CmdRemovelinkStart_flag = 0;
-					CmdCode_Buf[cmdNum] = 0x6001;
-					cmdNum++;
-				}	
-			}
-			else
-			{
-
-
-			}
-			
-			if((CmdCode_Buf[0] != 0xccc0) && (CmdCode_Buf[0] != 0xccc2))
-			{
-				SendUart();
-			}			
-			if(sendIntervalTime > 0)
-			{
-				sendIntervalTime--;
-			}
-			RecvUart();
-			if(recvOutTime > 0)
-			{
-				recvOutTime--;
-			}
-			WifiUartExceptionHandl();
-		}
-	}
 }

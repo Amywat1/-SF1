@@ -64,6 +64,8 @@ extern bit						g_corePreHeatFirstFlag;	//首次预热标志
 
 extern LOAD_CRL_MESSAGE xdata	loadCrlData;			//负载控制的数据
 
+extern bit						g_LedOpenFlag;				//照明灯开启标志
+
 void InitLoadIo(void);
 void InitLoadVariable(void);
 void LoadHeatCrlData(void);

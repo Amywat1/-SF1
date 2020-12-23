@@ -16,7 +16,7 @@ void InitWdt(void);
 void InitIo(void);
 void InitTimer5(void);
 void InitCharArrayData(unsigned char *buf,unsigned char len);
-//void InitIntArrayData(unsigned int *buf,unsigned char len);
+void InitIntArrayData(unsigned int *buf,unsigned char len);
 void SectorErase(unsigned int sectorAddr,bit sectorSelect);
 void SectorWrite(unsigned int sectorAddr,unsigned char byteData,bit sectorSelect);
 unsigned char SectorRead(unsigned int sectorAddr,bit sectorSelect);

@@ -1,173 +1,213 @@
 #ifndef SYSMODE_H
 #define SYSMODE_H
 
-#define POWER_UP_TIME				2					//500msÊ±»ù£¬ÉÏµç1Ãë
-#define POWER_UP_FIFTEEN_SECONDS	30					//500msÊ±»ù£¬ÉÏµç15Ãë
-#define SYS_SELFCHECK_WAIT_TIME		30					//500msÊ±»ù£¬15S
-#define SYS_PID_WAIT_TIME			24					//500msÊ±»ù£¬12S
-#define PID_STEP1_TIME				4					//500msÊ±»ù£¬2S£¬PIDµÄµÚÒ»²½Ê±¼ä
-#define PID_STEP2_TIME				8					//500msÊ±»ù£¬4S£¬PIDµÄµÚ¶ş²½Ê±¼ä
-#define PID_STEP3_TIME				12					//500msÊ±»ù£¬6S£¬PIDµÄµÚÈı²½Ê±¼ä
-#define PID_STEP4_TIME				16					//500msÊ±»ù£¬8S£¬PIDµÄµÚËÄ²½Ê±¼ä
-#define PID_STEP5_TIME				20					//500msÊ±»ù£¬10S£¬PIDµÄµÚÎå²½Ê±¼ä
-#define SYS_STANDBY_WAIT_TIME		600					//500msÊµ¼Ê£¬5min
-#define SYS_SELECT_WAIT_TIME		240					//500msÊµ¼Ê£¬2min
-#define SYS_ORDERSET_WAIT_TIME		240					//500msÊµ¼Ê£¬2min
-#define SYS_END_WAIT_TIME			600					//500msÊµ¼Ê£¬5min£¬¹¤×÷½áÊøµÈ´ıÊ±¼ä
-#define ONE_MINUTE_CNT				120					//500msÊ±»ù£¬1min
-#define ADJ_WAIT_TIME				10					//500msÊ±»ù£¬ÎÂ¶È/Ê±¼äµ÷½ÚµÈ´ıÊ±¼ä
-#define COOLING_DELAY_TIME			1200				//500msÊ±»ù£¬É¢ÈÈ·çÉÈÑÓÊ±¹Ø±ÕÊ±¼ä
-#define HIGH_POWER_MAX_TIME			1800				//500msÊ±»ù£¬´¿Õô¹¤ÒÕ¸ß¹¦ÂÊÊä³öÊ±¼ä¼ÆÊ±
-#define LID_OPEN_WORK_TIME			600					//500msÊ±»ù£¬¹¤×÷ºÍ±£ÎÂ×´Ì¬ÏÂ£¬¿ª¸ÇÊ±¼ä
+#define POWER_UP_TIME				2					//500msæ—¶åŸºï¼Œä¸Šç”µ1ç§’
+#define POWER_UP_FIFTEEN_SECONDS	30					//500msæ—¶åŸºï¼Œä¸Šç”µ15ç§’
+#define SYS_SELFCHECK_WAIT_TIME		30					//500msæ—¶åŸºï¼Œ15S
+#define SYS_PID_WAIT_TIME			24					//500msæ—¶åŸºï¼Œ12S
+#define PID_STEP1_TIME				4					//500msæ—¶åŸºï¼Œ2Sï¼ŒPIDçš„ç¬¬ä¸€æ­¥æ—¶é—´
+#define PID_STEP2_TIME				8					//500msæ—¶åŸºï¼Œ4Sï¼ŒPIDçš„ç¬¬äºŒæ­¥æ—¶é—´
+#define PID_STEP3_TIME				12					//500msæ—¶åŸºï¼Œ6Sï¼ŒPIDçš„ç¬¬ä¸‰æ­¥æ—¶é—´
+#define PID_STEP4_TIME				16					//500msæ—¶åŸºï¼Œ8Sï¼ŒPIDçš„ç¬¬å››æ­¥æ—¶é—´
+#define PID_STEP5_TIME				20					//500msæ—¶åŸºï¼Œ10Sï¼ŒPIDçš„ç¬¬äº”æ­¥æ—¶é—´
+#define SYS_STANDBY_WAIT_TIME		600					//500mså®é™…ï¼Œ5min
+#define SYS_SELECT_WAIT_TIME		240					//500mså®é™…ï¼Œ2min
+#define SYS_ORDERSET_WAIT_TIME		240					//500mså®é™…ï¼Œ2min
+#define SYS_END_WAIT_TIME			600					//500mså®é™…ï¼Œ5minï¼Œå·¥ä½œç»“æŸç­‰å¾…æ—¶é—´
+#define ONE_MINUTE_CNT				120					//500msæ—¶åŸºï¼Œ1min
+#define ADJ_WAIT_TIME				10					//500msæ—¶åŸºï¼Œæ¸©åº¦/æ—¶é—´è°ƒèŠ‚ç­‰å¾…æ—¶é—´
+#define COOLING_DELAY_TIME			1200				//500msæ—¶åŸºï¼Œæ•£çƒ­é£æ‰‡å»¶æ—¶å…³é—­æ—¶é—´
+#define HIGH_POWER_MAX_TIME			1800				//500msæ—¶åŸºï¼Œçº¯è’¸å·¥è‰ºé«˜åŠŸç‡è¾“å‡ºæ—¶é—´è®¡æ—¶
+#define LID_OPEN_WORK_TIME			600					//500msæ—¶åŸºï¼Œå·¥ä½œå’Œä¿æ¸©çŠ¶æ€ä¸‹ï¼Œå¼€ç›–æ—¶é—´
 	
-#define CLEAN_TIME_STEP_1			2400				//500msÊ±»ù£¬Ë®±ÃÇå½à³ÌĞò£¬²½Öè1Ê±¼ä,20min
-#define CLEAN_TIME_STEP_2			240					//500msÊ±»ù£¬Ë®±ÃÇå½à³ÌĞò£¬²½Öè2Ê±¼ä,2min
-#define CLEAN_TIME_STEP_3			360					//500msÊ±»ù£¬Ë®±ÃÇå½à³ÌĞò£¬²½Öè3Ê±¼ä,3min
+#define CLEAN_TIME_STEP_1			2400				//500msæ—¶åŸºï¼Œæ°´æ³µæ¸…æ´ç¨‹åºï¼Œæ­¥éª¤1æ—¶é—´,20min
+#define CLEAN_TIME_STEP_2			240					//500msæ—¶åŸºï¼Œæ°´æ³µæ¸…æ´ç¨‹åºï¼Œæ­¥éª¤2æ—¶é—´,2min
+#define CLEAN_TIME_STEP_3			360					//500msæ—¶åŸºï¼Œæ°´æ³µæ¸…æ´ç¨‹åºï¼Œæ­¥éª¤3æ—¶é—´,3min
 
-#define DISP_FLASH_FRE				50					//10msÊ±»ù£¬ÏÔÊ¾µÄÉÁË¸ÆµÂÊ
+#define DISP_FLASH_FRE				50					//10msæ—¶åŸºï¼Œæ˜¾ç¤ºçš„é—ªçƒé¢‘ç‡
 
-#define ORDER_TIME_MAX          	1440				//Ô¤Ô¼×î³¤Ê±¼ä
+#define ORDER_TIME_MAX          	1440				//é¢„çº¦æœ€é•¿æ—¶é—´
 
-#define TECHNOLOGY_STEP_1_NUM		0                 	//¹¤ÒÕ²½Öè1ËùÔÚ±í¸ñÁĞÊı
-#define STEP_1_TEMP_NUM				1                 	//²½Öè1Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define STEP_1_TIME_NUM				2                 	//²½Öè1Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define TECHNOLOGY_STEP_2_NUM		3                 	//¹¤ÒÕ²½Öè2ËùÔÚ±í¸ñÁĞÊı
-#define STEP_2_TEMP_NUM				4                 	//²½Öè2Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define STEP_2_TIME_NUM				5                 	//²½Öè2Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define TECHNOLOGY_STEP_3_NUM		6                 	//¹¤ÒÕ²½Öè3ËùÔÚ±í¸ñÁĞÊı
-#define STEP_3_TEMP_NUM				7                 	//²½Öè3Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define STEP_3_TIME_NUM				8                 	//²½Öè3Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define TECHNOLOGY_STEP_4_NUM		9                 	//¹¤ÒÕ²½Öè4ËùÔÚ±í¸ñÁĞÊı
-#define STEP_4_TEMP_NUM				10                 	//²½Öè4Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define STEP_4_TIME_NUM				11                 	//²½Öè4Ä¬ÈÏÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define TECHNOLOGY_WARM_NUM			12                 	//±£ÎÂ¹¤ÒÕËùÔÚ±í¸ñÁĞÊı
-#define KEEP_WARM_TEMP_NUM			13                 	//±£ÎÂÎÂ¶ÈËùÔÚ±í¸ñÁĞÊı
-#define KEEP_WARM_TIME_NUM			14                 	//±£ÎÂÊ±¼äËùÔÚ±í¸ñÁĞÊı
-#define ADJ_MIN_TEMP_NUM			15                 	//ÎÂ¶Èµ÷½ÚµÄ×îĞ¡ÖµËùÔÚ±í¸ñÁĞÊı
-#define ADJ_MAX_TEMP_NUM			16                 	//ÎÂ¶Èµ÷½ÚµÄ×î´óÖµËùÔÚ±í¸ñÁĞÊı
-#define ADJ_MIN_TIME_NUM			17                 	//Ê±¼äµ÷½ÚµÄ×îĞ¡ÖµËùÔÚ±í¸ñÁĞÊı
-#define ADJ_MAX_TIME_NUM			18                 	//Ê±¼äµ÷½ÚµÄ×î´óÖµËùÔÚ±í¸ñÁĞÊı
-#define TEMP_ADJ_EN_NUM				19                 	//ÎÂ¶È¿Éµ÷±êÖ¾ËùÔÚ±í¸ñÁĞÊı
-#define TIME_ADJ_EN_NUM				20                 	//Ê±¼ä¿Éµ÷±êÖ¾ËùÔÚ±í¸ñÁĞÊı
-#define ORDER_EN_NUM				21                 	//Ô¤Ô¼ÓĞĞ§±êÖ¾ËùÔÚ±í¸ñÁĞÊı
+#define TECHNOLOGY_STEP_1_NUM		0                 	//å·¥è‰ºæ­¥éª¤1æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_1_TEMP_NUM				1                 	//æ­¥éª¤1é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_1_TIME_NUM				2                 	//æ­¥éª¤1é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TECHNOLOGY_STEP_2_NUM		3                 	//å·¥è‰ºæ­¥éª¤2æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_2_TEMP_NUM				4                 	//æ­¥éª¤2é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_2_TIME_NUM				5                 	//æ­¥éª¤2é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TECHNOLOGY_STEP_3_NUM		6                 	//å·¥è‰ºæ­¥éª¤3æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_3_TEMP_NUM				7                 	//æ­¥éª¤3é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_3_TIME_NUM				8                 	//æ­¥éª¤3é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TECHNOLOGY_STEP_4_NUM		9                 	//å·¥è‰ºæ­¥éª¤4æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_4_TEMP_NUM				10                 	//æ­¥éª¤4é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define STEP_4_TIME_NUM				11                 	//æ­¥éª¤4é»˜è®¤æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TECHNOLOGY_WARM_NUM			12                 	//ä¿æ¸©å·¥è‰ºæ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define KEEP_WARM_TEMP_NUM			13                 	//ä¿æ¸©æ¸©åº¦æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define KEEP_WARM_TIME_NUM			14                 	//ä¿æ¸©æ—¶é—´æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define ADJ_MIN_TEMP_NUM			15                 	//æ¸©åº¦è°ƒèŠ‚çš„æœ€å°å€¼æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define ADJ_MAX_TEMP_NUM			16                 	//æ¸©åº¦è°ƒèŠ‚çš„æœ€å¤§å€¼æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define ADJ_MIN_TIME_NUM			17                 	//æ—¶é—´è°ƒèŠ‚çš„æœ€å°å€¼æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define ADJ_MAX_TIME_NUM			18                 	//æ—¶é—´è°ƒèŠ‚çš„æœ€å¤§å€¼æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TEMP_ADJ_EN_NUM				19                 	//æ¸©åº¦å¯è°ƒæ ‡å¿—æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define TIME_ADJ_EN_NUM				20                 	//æ—¶é—´å¯è°ƒæ ‡å¿—æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
+#define ORDER_EN_NUM				21                 	//é¢„çº¦æœ‰æ•ˆæ ‡å¿—æ‰€åœ¨è¡¨æ ¼åˆ—æ•°
 
-#define MENU_1_NUM				    0                 	//²Ëµ¥1ËùÔÚ±í¸ñĞĞÊı
-#define MENU_2_NUM				    1                 	//²Ëµ¥2ËùÔÚ±í¸ñĞĞÊı
-#define MENU_3_NUM				    2                 	//²Ëµ¥3ËùÔÚ±í¸ñĞĞÊı
-#define MENU_4_NUM				    3                 	//²Ëµ¥4ËùÔÚ±í¸ñĞĞÊı
-#define MENU_5_NUM				    4                 	//²Ëµ¥5ËùÔÚ±í¸ñĞĞÊı
-#define MENU_6_NUM				    5                 	//²Ëµ¥6ËùÔÚ±í¸ñĞĞÊı
+#define MENU_1_NUM				    0                 	//èœå•1æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
+#define MENU_2_NUM				    1                 	//èœå•2æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
+#define MENU_3_NUM				    2                 	//èœå•3æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
+#define MENU_4_NUM				    3                 	//èœå•4æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
+#define MENU_5_NUM				    4                 	//èœå•5æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
+#define MENU_6_NUM				    5                 	//èœå•6æ‰€åœ¨è¡¨æ ¼è¡Œæ•°
 	
-#define NULL_STEP					0					//´Ë²½ÖèÎŞ¹¤ÒÕ
-#define ONLY_BAKE					1					//µ¥¿¾¹¤ÒÕ
-#define BAKE_STEAM					2					//Õô¿¾¹¤ÒÕ
-#define ONLY_STEAM					3					//µ¥Õô¹¤ÒÕ
+#define NULL_STEP					0					//æ­¤æ­¥éª¤æ— å·¥è‰º
+#define ONLY_BAKE					1					//å•çƒ¤å·¥è‰º
+#define BAKE_STEAM					2					//è’¸çƒ¤å·¥è‰º
+#define ONLY_STEAM					3					//å•è’¸å·¥è‰º
 
-#define STATE_YES 					0X88				//×´Ì¬Õı³£	£¨ÓĞ¹ıÁã¡¢Ë®±ÃÓĞĞÂÒ»´Î³éË®£©
-#define STATE_NO					0X77				//×´Ì¬Òì³£	£¨ÎŞ¹ıÁã¡¢Ë®±ÃÎŞĞÂÒ»´Î³éË®£©
-#define LID_CLOSE					1					//ºÏ¸Ç×´Ì¬
-#define LID_OPEN					0					//¿ª¸Ç×´Ì¬
+#define STATE_YES 					0X88				//çŠ¶æ€æ­£å¸¸	ï¼ˆæœ‰è¿‡é›¶ã€æ°´æ³µæœ‰æ–°ä¸€æ¬¡æŠ½æ°´ï¼‰
+#define STATE_NO					0X77				//çŠ¶æ€å¼‚å¸¸	ï¼ˆæ— è¿‡é›¶ã€æ°´æ³µæ— æ–°ä¸€æ¬¡æŠ½æ°´ï¼‰
+#define LID_CLOSE					1					//åˆç›–çŠ¶æ€
+#define LID_OPEN					0					//å¼€ç›–çŠ¶æ€
 
-#define EN_ADJ                      1                   //¿Éµ÷
-#define NO_ADJ                      0                   //²»¿Éµ÷
+#define EN_ADJ                      1                   //å¯è°ƒ
+#define NO_ADJ                      0                   //ä¸å¯è°ƒ
 
-#define DEFAULT_MENU                MENU_4_NUM          //³õÊ¼Ä¬ÈÏ²Ëµ¥
-	
+#define DEFAULT_MENU                MENU_4_NUM          //åˆå§‹é»˜è®¤èœå•
+
+/*æšä¸¾å„èœå•çš„ç¼–å·ï¼ˆä¸å…è®¸ä¿®æ”¹å€¼ï¼‰*/
+typedef enum {
+	MENU_DIY_BAKING					= 0x1000,			//è‡ªä¸»çƒ˜ç„™
+	MENU_JI_CHI						= 0x0006,			//é¸¡ç¿…
+	MENU_DAN_TA						= 0x0005,			//è›‹æŒ
+	MENU_HONG_SHU					= 0x0004,			//çº¢è–¯
+	MENU_KAO_CHUAN					= 0x0016,			//çƒ¤ä¸²
+	MENU_DAN_GAO					= 0x0007,			//è›‹ç³•
+	MENU_YU_MI						= 0x000D,			//ç‰ç±³
+	MENU_KAO_YU						= 0x0015,			//çƒ¤é±¼
+	MENU_QU_QI						= 0x0008,			//æ›²å¥‡
+	MENU_QIE_ZI						= 0x0013,			//èŒ„å­
+	MENU_KAO_XIA					= 0x0014,			//çƒ¤è™¾
+	MENU_MIAN_BAO					= 0x0012,			//é¢åŒ…
+	MENU_BAN_LI						= 0x000F,			//æ¿æ —
+	MENU_NIU_PAI					= 0x000B,			//ç‰›æ’
+	MENU_PI_SA						= 0x0009,			//æŠ«è¨
+	MENU_OTHER_TU_SI				= 0x0001,			//å…¶å®ƒâ€”â€”åå¸ç‰‡
+	MENU_OTHER_HUA_SHENG			= 0x0002,			//å…¶å®ƒâ€”â€”èŠ±ç”Ÿ
+	MENU_OTHER_TU_DOU				= 0x0003,			//å…¶å®ƒâ€”â€”åœŸè±†
+	MENU_OTHER_PAI_GU				= 0x000A,			//å…¶å®ƒâ€”â€”æ’éª¨
+	MENU_OTHER_KAO_JI				= 0x000C,			//å…¶å®ƒâ€”â€”çƒ¤é¸¡
+	MENU_OTHER_YU_TOU				= 0x000E,			//å…¶å®ƒâ€”â€”èŠ‹å¤´
+	MENU_OTHER_MAN_TOU				= 0x0010,			//å…¶å®ƒâ€”â€”å°é¦’å¤´
+	MENU_OTHER_JI_TUI				= 0x0011,			//å…¶å®ƒâ€”â€”é¸¡è…¿
+	MENU_OTHER_KAO_CHANG			= 0x0017,			//å…¶å®ƒâ€”â€”çƒ¤è‚ 
+	MENU_OTHER_CANG_JU				= 0x0018,			//å…¶å®ƒâ€”â€”é¤å…·
+	MENU_OTHER_NULL					= 0x0FFF,			//å…¶å®ƒâ€”â€”ç©º
+	MENU_OTHER_UNKNOW				= 0x0FFE,			//å…¶å®ƒâ€”â€”ä¸è®¤è¯†
+
+}MENU_NUM_TypeDef;
+
+
 enum _SYS_Type_{                	           
-    SysModePowerUp					= 0,				//ÉÏµç×´Ì¬
-    SysModeStandby					= 1,				//´ı»ú×´Ì¬
-    SysModeSelect					= 2,				//ÉèÖÃ´ı»ú×´Ì¬
-    SysModeOrderSet					= 3,				//Ô¤Ô¼ÉèÖÃ×´Ì¬
-    SysModeOrderWork				= 4,				//Ô¤Ô¼¹¤×÷×´Ì¬
-    SysModeWork						= 5,				//¹¤×÷×´Ì¬
-    SysModeWarm						= 6,				//±£ÎÂ×´Ì¬
-	SysModeEnd						= 7,				//¹¤×÷½áÊø×´Ì¬
-    SysModeDarkScreen				= 8,				//ºÚÆÁ×´Ì¬
-	SysModeError					= 9,				//±¨¾¯×´Ì¬
-    SysModePCBCheck					= 10,				//PCB×Ô¼ì×´Ì¬
-	SysModeMachineCheck				= 11,				//Õû»ú×Ô¼ì×´Ì¬
-	SysModeDebug					= 12,				//Debug×´Ì¬
-    SysModePID						= 13,				//PID×´Ì¬
-	SysModeClean					= 14,				//³ıË®¹¸×´Ì¬
+    SysModePowerUp					= 0,				//ä¸Šç”µçŠ¶æ€
+    SysModeStandby,				                        //å¾…æœºçŠ¶æ€
+    SysModeDarkScreen,				                    //é»‘å±çŠ¶æ€
+	SYS_MODE_SMART_IDENTIFICATION,						//æ™ºèƒ½è¯†åˆ«çŠ¶æ€
+	SYS_MODE_AUTO_ERR, 									//æ™ºèƒ½è¯†åˆ«å¤±è´¥çŠ¶æ€
+	SysModeSelect,			                        	//è®¾ç½®å¾…æœºçŠ¶æ€
+	SysModeOrderSet,				                    //é¢„çº¦è®¾ç½®çŠ¶æ€
+	SYS_MODE_PRE_HEAT,									//é¢„çƒ­çŠ¶æ€
+	SYS_MODE_PRE_HEAT_KEEP,								//é¢„çƒ­ä¿æŒçŠ¶æ€
+	SysModeWork,				                        //å·¥ä½œçŠ¶æ€
+	SYS_MODE_SMART_WORKING,								//æ™ºèƒ½çƒ˜ç„™å·¥ä½œçŠ¶æ€
+	SysModeEnd,				                            //å·¥ä½œç»“æŸçŠ¶æ€
+	SysModeError,				                        //æŠ¥è­¦çŠ¶æ€
+
+
+    SysModeOrderWork,				                    //é¢„çº¦å·¥ä½œçŠ¶æ€
+    SysModeWarm	,				                        //ä¿æ¸©çŠ¶æ€
+    SysModePCBCheck,				                    //PCBè‡ªæ£€çŠ¶æ€
+	SysModeMachineCheck,			                    //æ•´æœºè‡ªæ£€çŠ¶æ€
+	SysModeDebug,				                        //DebugçŠ¶æ€
+    SysModePID,			        	                    //PIDçŠ¶æ€
+	SysModeClean,				                        //é™¤æ°´å¢çŠ¶æ€
 };
 	
 enum _FUN_Type_{                	           
-    NoFunction						= 0,				//ÎŞ¹¦ÄÜ
-    FunOnlyBake						= 1,				//¿ÕÆøÕ¨¹¦ÄÜ
-    FunBakeSteam					= 2,				//ÕôÆû¿¾¹¦ÄÜ
-    FunOnlySteam					= 3,				//Ô­Î¶Õô¹¦ÄÜ
+    NoFunction						= 0,				//æ— åŠŸèƒ½
+    FunOnlyBake						= 1,				//ç©ºæ°”ç‚¸åŠŸèƒ½
+    FunBakeSteam					= 2,				//è’¸æ±½çƒ¤åŠŸèƒ½
+    FunOnlySteam					= 3,				//åŸå‘³è’¸åŠŸèƒ½
 };
 	
 enum _ERROR_Type_{              	             
-    NoError							= 0,				//ÎŞ¿É¼ÌĞø¹¤×÷µÄ±¨¾¯
-    NoPotErr						= 1,				//È±¹ø±¨¾¯
-	LidOpenErr						= 2,				//¿ª¸Ç±¨¾¯
-    LowWaterErr						= 3,				//È±Ë®±¨¾¯
+    NoError							= 0,				//æ— å¯ç»§ç»­å·¥ä½œçš„æŠ¥è­¦
+    NoPotErr						= 1,				//ç¼ºé”…æŠ¥è­¦
+	LidOpenErr						= 2,				//å¼€ç›–æŠ¥è­¦
+    LowWaterErr						= 3,				//ç¼ºæ°´æŠ¥è­¦
 };	
 	
 enum _WATER_YIELD_TYPE_{	
-    NormalType						= 0,				//Õı³£³éË®×´Ì¬
-	MabyLackWater					= 1,				//¿ÉÄÜÈ±Ë®×´Ì¬
-    LackWater						= 2,				//È±Ë®×´Ì¬
-    BlockingWater					= 3,				//¶ÂË®×´Ì¬
+    NormalType						= 0,				//æ­£å¸¸æŠ½æ°´çŠ¶æ€
+	MabyLackWater					= 1,				//å¯èƒ½ç¼ºæ°´çŠ¶æ€
+    LackWater						= 2,				//ç¼ºæ°´çŠ¶æ€
+    BlockingWater					= 3,				//å µæ°´çŠ¶æ€
 };
 
-extern enum _SYS_Type_    		g_sysType;            			//ÏµÍ³×´Ì¬
-extern enum _ERROR_Type_		g_enContinueErr;				//¿É¼ÌĞø¹¤×÷±¨¾¯ÀàĞÍ
-extern enum _WATER_YIELD_TYPE_	g_waterYieldType;				//Ë®±Ã³öË®×´Ì¬
+extern enum _SYS_Type_    		g_sysType;            			//ç³»ç»ŸçŠ¶æ€
+extern enum _ERROR_Type_		g_enContinueErr;				//å¯ç»§ç»­å·¥ä½œæŠ¥è­¦ç±»å‹
+extern enum _WATER_YIELD_TYPE_	g_waterYieldType;				//æ°´æ³µå‡ºæ°´çŠ¶æ€
 
-extern unsigned char xdata		g_menuNumber;					//²Ëµ¥±àºÅ
+extern unsigned char xdata		g_menuNumber;					//èœå•ç¼–å·
 
-extern unsigned char xdata		g_zeroType;						//¹ıÁã×´Ì¬£¨ÓĞ¹ıÁã£¬ÎŞ¹ıÁã£©
-extern unsigned char xdata		g_pumpType;						//Ë®±Ã×´Ì¬£¨ÓĞĞÂ³éË®£¬ÎŞĞÂ³éË®£©
-extern 			bit				g_LidFlag;						//Î´ºÏ¸Ç±êÖ¾
+extern unsigned char xdata		g_zeroType;						//è¿‡é›¶çŠ¶æ€ï¼ˆæœ‰è¿‡é›¶ï¼Œæ— è¿‡é›¶ï¼‰
+extern unsigned char xdata		g_pumpType;						//æ°´æ³µçŠ¶æ€ï¼ˆæœ‰æ–°æŠ½æ°´ï¼Œæ— æ–°æŠ½æ°´ï¼‰
+extern 			bit				g_LidFlag;						//æœªåˆç›–æ ‡å¿—
 
-extern unsigned int  xdata		g_sysStandbyWaitCnt;			//´ı»úµÈ´ıÊ±¼ä¼ÆÊı
-extern unsigned char xdata		g_sysSelectWaitCnt;				//ÉèÖÃ´ı»úµÈ´ıÊ±¼ä¼ÆÊı
-extern unsigned char xdata		g_sysOrderSetWaitCnt;			//Ô¤Ô¼ÉèÖÃµÈ´ıÊ±¼ä¼ÆÊı
-extern unsigned char xdata		g_sysSelfCheckWaitCnt;			//×Ô¼ìµÈ´ıÊ±¼ä¼ÆÊı
-extern unsigned char xdata		g_adjWaitTimeCnt;				//Ê±¼ä/ÎÂ¶Èµ÷½ÚµÈ´ıÊ±¼ä¼ÆÊı
-extern unsigned char xdata		g_dispFlashCnt;					//ÏÔÊ¾ÉÁË¸¼ÆÊı
-extern unsigned int  xdata		g_cleanPumpTimeCnt;				//Ë®±ÃÇå½à³ÌĞò£¬²½ÖèÊ±¼ä
+extern unsigned int  xdata		g_sysStandbyWaitCnt;			//å¾…æœºç­‰å¾…æ—¶é—´è®¡æ•°
+extern unsigned char xdata		g_sysSelectWaitCnt;				//è®¾ç½®å¾…æœºç­‰å¾…æ—¶é—´è®¡æ•°
+extern unsigned char xdata		g_sysOrderSetWaitCnt;			//é¢„çº¦è®¾ç½®ç­‰å¾…æ—¶é—´è®¡æ•°
+extern unsigned char xdata		g_sysSelfCheckWaitCnt;			//è‡ªæ£€ç­‰å¾…æ—¶é—´è®¡æ•°
+extern unsigned char xdata		g_adjWaitTimeCnt;				//æ—¶é—´/æ¸©åº¦è°ƒèŠ‚ç­‰å¾…æ—¶é—´è®¡æ•°
+extern unsigned char xdata		g_dispFlashCnt;					//æ˜¾ç¤ºé—ªçƒè®¡æ•°
+extern unsigned int  xdata		g_cleanPumpTimeCnt;				//æ°´æ³µæ¸…æ´ç¨‹åºï¼Œæ­¥éª¤æ—¶é—´
 
-extern unsigned char xdata		g_darkScreenTime;				//×Ô¼ìµÚÊ®²½È«Ï¢Ê±¼ä
-extern unsigned char xdata		g_pdWaitTime;					//µôµçÖØĞÂÉÏµçºóµÄµÈ´ıÊ±¼ä
+extern unsigned char xdata		g_darkScreenTime;				//è‡ªæ£€ç¬¬åæ­¥å…¨æ¯æ—¶é—´
+extern unsigned char xdata		g_pdWaitTime;					//æ‰ç”µé‡æ–°ä¸Šç”µåçš„ç­‰å¾…æ—¶é—´
 
-extern unsigned char xdata		g_nowStepworkTemp;				//µ±Ç°²½Öè¹¤×÷ÎÂ¶È
-extern unsigned char xdata		g_nowStepworkTime;				//µ±Ç°²½Öè¹¤×÷Ê±¼ä
-extern unsigned char xdata		g_workTimeAll;					//¹¤×÷×ÜÊ±¼ä
-extern unsigned int  xdata		g_keepWarmTime;					//±£ÎÂÊ±¼ä
-extern unsigned int  xdata		g_orderTime;					//Ô¤Ô¼Ê±¼ä
-extern unsigned int  xdata		g_orderMinTime;					//×îĞ¡Ô¤Ô¼Ê±¼ä
-extern unsigned char xdata		g_workOneMinCnt;				//1minÊ±¼ä¼ÆÊ±
-extern unsigned int  xdata		g_highSteamPowerCnt;			//´¿Õô¹¤ÒÕÏÂ¸ß¹¦ÂÊÊä³öÊ±¼ä¼ÆÊ±
+extern unsigned char xdata		g_nowStepworkTemp;				//å½“å‰æ­¥éª¤å·¥ä½œæ¸©åº¦
+extern unsigned char xdata		g_nowStepworkTime;				//å½“å‰æ­¥éª¤å·¥ä½œæ—¶é—´
+extern unsigned char xdata		g_workTimeAll;					//å·¥ä½œæ€»æ—¶é—´
+extern unsigned int  xdata		g_keepWarmTime;					//ä¿æ¸©æ—¶é—´
+extern unsigned int  xdata		g_orderTime;					//é¢„çº¦æ—¶é—´
+extern unsigned int  xdata		g_orderMinTime;					//æœ€å°é¢„çº¦æ—¶é—´
+extern unsigned char xdata		g_workOneMinCnt;				//1minæ—¶é—´è®¡æ—¶
+extern unsigned int  xdata		g_highSteamPowerCnt;			//çº¯è’¸å·¥è‰ºä¸‹é«˜åŠŸç‡è¾“å‡ºæ—¶é—´è®¡æ—¶
 
-extern unsigned char xdata		g_nowStepTechnology;			//µ±Ç°²½ÖèµÄ¹¤ÒÕ
-extern unsigned char xdata		g_nowStepNum;					//µ±Ç°¹¤ÒÕ²½ÖèÊı
+extern unsigned char xdata		g_nowStepTechnology;			//å½“å‰æ­¥éª¤çš„å·¥è‰º
+extern unsigned char xdata		g_nowStepNum;					//å½“å‰å·¥è‰ºæ­¥éª¤æ•°
 
-extern 			bit				g_dispFlashFlag;				//ÏÔÊ¾ÉÁË¸±êÖ¾Î»
-extern			bit				g_selfCheckEnFlag;				//×Ô¼ìÔÊĞí±êÖ¾
-extern			bit			    g_timeAdjEnFlag;				//Ê±¼ä¿Éµ÷½Ú±êÖ¾
-extern			bit			    g_tempAdjEnFlag;				//ÎÂ¶È¿Éµ÷½Ú±êÖ¾
-extern			bit			    g_orderEnFlag;					//Ô¤Ô¼ÓĞĞ§±êÖ¾
-extern 			bit				g_timeAdjStateFlag;				//Ê±¼äµ÷½Ú×´Ì¬±êÖ¾
-extern 			bit				g_tempAdjStateFlag;				//ÎÂ¶Èµ÷½Ú×´Ì¬±êÖ¾
-extern			bit				g_pumpCalibrationFlag;			//Ë®±ÃµçÁ÷±ê¶¨±êÖ¾
-extern			bit				g_coolingFanDealyFlag;			//É¢ÈÈ·çÉÈÑÓÊ±Í£Ö¹±êÖ¾
-extern			bit				g_steamLowPowerFlag;			//´¿ÕôµÄµÍ¹¦ÂÊ±êÖ¾
-extern			bit			    g_quickPumpingFlag;				//Ë®±Ã¿ì³é±êÖ¾£¨ÔÚÈ±Ë®±¨¾¯°´¡°Æô¶¯È¡Ïû¡±¼ü¼ÌĞøºó¿ì³é£©
+extern 			bit				g_dispFlashFlag;				//æ˜¾ç¤ºé—ªçƒæ ‡å¿—ä½
+extern			bit				g_selfCheckEnFlag;				//è‡ªæ£€å…è®¸æ ‡å¿—
+extern			bit			    g_timeAdjEnFlag;				//æ—¶é—´å¯è°ƒèŠ‚æ ‡å¿—
+extern			bit			    g_tempAdjEnFlag;				//æ¸©åº¦å¯è°ƒèŠ‚æ ‡å¿—
+extern			bit			    g_orderEnFlag;					//é¢„çº¦æœ‰æ•ˆæ ‡å¿—
+extern 			bit				g_timeAdjStateFlag;				//æ—¶é—´è°ƒèŠ‚çŠ¶æ€æ ‡å¿—
+extern 			bit				g_tempAdjStateFlag;				//æ¸©åº¦è°ƒèŠ‚çŠ¶æ€æ ‡å¿—
+extern			bit				g_pumpCalibrationFlag;			//æ°´æ³µç”µæµæ ‡å®šæ ‡å¿—
+extern			bit				g_coolingFanDealyFlag;			//æ•£çƒ­é£æ‰‡å»¶æ—¶åœæ­¢æ ‡å¿—
+extern			bit				g_steamLowPowerFlag;			//çº¯è’¸çš„ä½åŠŸç‡æ ‡å¿—
+extern			bit			    g_quickPumpingFlag;				//æ°´æ³µå¿«æŠ½æ ‡å¿—ï¼ˆåœ¨ç¼ºæ°´æŠ¥è­¦æŒ‰â€œå¯åŠ¨å–æ¶ˆâ€é”®ç»§ç»­åå¿«æŠ½ï¼‰
 
-extern			bit				g_lidSelfCheckOkFlag;			//¸Ç×Ô¼ìºÏ¸ñ±êÖ¾
-extern			bit				g_coreNtcSelfCheckOkFlag;		//Ç»ÌåNTCµçÂ·×Ô¼ìºÏ¸ñ±êÖ¾
-extern			bit				g_selfCheckPassFlag;			//×Ô¼ìºÏ¸ñ±êÖ¾
-extern			bit				g_selfCheckOverFlag;			//ÏÔÊ¾°å×Ô¼ìÍê±Ï±êÖ¾
-extern			bit				g_pumpWorkFlag;					//Õû»ú×Ô¼ìË®±Ã¹¤×÷±êÖ¾
-extern			bit				g_pumpDelayJudgeFlag;			//Õû»ú×Ô¼ìË®±ÃÑÓÊ±ÅĞ¶Ï±êÖ¾
+extern			bit				g_lidSelfCheckOkFlag;			//ç›–è‡ªæ£€åˆæ ¼æ ‡å¿—
+extern			bit				g_coreNtcSelfCheckOkFlag;		//è…”ä½“NTCç”µè·¯è‡ªæ£€åˆæ ¼æ ‡å¿—
+extern			bit				g_selfCheckPassFlag;			//è‡ªæ£€åˆæ ¼æ ‡å¿—
+extern			bit				g_selfCheckOverFlag;			//æ˜¾ç¤ºæ¿è‡ªæ£€å®Œæ¯•æ ‡å¿—
+extern			bit				g_pumpWorkFlag;					//æ•´æœºè‡ªæ£€æ°´æ³µå·¥ä½œæ ‡å¿—
+extern			bit				g_pumpDelayJudgeFlag;			//æ•´æœºè‡ªæ£€æ°´æ³µå»¶æ—¶åˆ¤æ–­æ ‡å¿—
 
-extern unsigned char xdata		g_selfCheckStep;				//×Ô¼ì²½Öè
-extern unsigned char xdata		g_pidDispStep;					//PID²½Öè
-extern unsigned char xdata		g_debugDispStep;				//Debug²½Öè
-extern unsigned char xdata		g_cleanIncrustantStep;			//Ë®¹¸Çå½à²½Öè
+extern unsigned char xdata		g_selfCheckStep;				//è‡ªæ£€æ­¥éª¤
+extern unsigned char xdata		g_pidDispStep;					//PIDæ­¥éª¤
+extern unsigned char xdata		g_debugDispStep;				//Debugæ­¥éª¤
+extern unsigned char xdata		g_cleanIncrustantStep;			//æ°´å¢æ¸…æ´æ­¥éª¤
 
 extern unsigned char code MenuDefaultValue_Table[6][22];
 

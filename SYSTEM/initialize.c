@@ -71,6 +71,8 @@ void InitIo(void)
 	InitTouchKeyIo();								//触摸按键引脚IO
 	InitMeasureIo();								//信号检测IO
 	InitLoadIo();									//负载IO
+
+	InitWifiUartIo();
 	
 	#ifdef DEBUG
 	InitDebugUartIo();								//初始化调试串口IO
@@ -121,15 +123,15 @@ Input:				void
 Return:				void
 History:			无
 -----------------------------------------------------------------------------*/
-//void InitIntArrayData(unsigned int *buf,unsigned char len)
-//{
-//	unsigned char i;
-//	for(i=0;i<len;i++)
-//	{
-//		*buf = 0;
-//		buf++;	
-//	}
-//}
+void InitIntArrayData(unsigned int *buf,unsigned char len)
+{
+	unsigned char i;
+	for(i=0;i<len;i++)
+	{
+		*buf = 0;
+		buf++;	
+	}
+}
 
 /*-----------------------------------------------------------------------------
 Description:		对扇区进行擦除
@@ -308,11 +310,7 @@ void InitVariable(void)
 	InitLoadVariable();								//初始化负载变量
 
 
-	CmdHandVariableInit();
-	CmdSmartLinkVariableInit();
-	CmdSoftGoUpVariableInit();
-	CmdReBootVariableInit();
-	Cmd0x5000VariableIint();
+	InitWifiVariable();
 	
 	#ifdef DEBUG
 	InitDebugUartVariable();						//初始化调试串口变量
@@ -357,7 +355,7 @@ void InitAll(void)
 	InitWdt();									//清狗
 	InitUart();									//串口初配置始化
 
-	Uart0Init();
+	InitWifiUart();
 	
 	#ifdef DEBUG
 	InitDebugUart();							//调试串口配置初始化

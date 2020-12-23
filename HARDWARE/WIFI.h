@@ -1,337 +1,61 @@
-#ifndef		_WIFI_H_ 
-#define		_WIFI_H_
+#ifndef _WIFI_H
+#define _WIFI_H
 
-#define SN_start0							0XFA  
-#define SN_start1							0XFB
+/*æ‰€æœ‰å‘½ä»¤ï¼ˆä¸å…è®¸ä¿®æ”¹å€¼ï¼‰*/
+typedef enum {
+	/*è®¾å¤‡ç»™APPå‘çš„æŒ‡ä»¤*/
+	CMD_KX_APP_HANDS					= 0xCCC0,			//æ¡æ‰‹æŒ‡ä»¤
+	CMD_KX_APP_SMART_LINK				= 0xCCC2,			//Smart LinkæŒ‡ä»¤
+	CMD_KX_APP_FIRMWARE_UPGRADE			= 0xCCC5,			//å›ºä»¶å‡çº§æŒ‡ä»¤
+	CMD_KX_APP_GET_STATUS				= 0xCCC7,			//èŽ·å–wifiçŠ¶æ€
+	CMD_KX_APP_RESTART_WIFI				= 0xCCC9,			//é‡å¯æ¨¡å—
+	CMD_KX_APP_REMOVE_LINK				= 0x6001,			//æ¸…é™¤è®¾å¤‡ç»‘å®š
+	CMD_KX_APP_REPORT_STATUS			= 0X5000,			//è®¾å¤‡ä¸»åŠ¨ä¸ŠæŠ¥çŠ¶æ€
+	CMD_KX_APP_KEY_DATA					= 0X6003,			//è®¾å¤‡ä¸ŠæŠ¥æŒ‰é”®è¡Œä¸ºçŠ¶æ€
 
-#define Contract_Verios						0X00 //Í¨Ñ¶°æ±¾
-#define Contract_FrameNum					0X00 //Í¨Ñ¶Ö¡×ÜÊý
-#define Contract_FrameNumber				0X00 //Í¨Ñ¶Ö¡ÐòºÅ
-#define Contract_ReturnCtl00          	 	0x00  //Ö÷¶¯·¢ËÍÒªÇó¶Ô·½»Ø¸´
-#define Contract_ReturnCtl01				0x80  //·µ»ØÖ¸Áî
-#define Contract_ReturnCtl10				0x40  //Ö÷¶¯·¢ËÍÎÞÐè¶Ô·½»Ø¸´
+	/*APPç»™è®¾å¤‡å‘çš„æŒ‡ä»¤*/
+	CMD_APP_KX_STOP_WORK				= 0X00B1,			//APPä¸‹å–æ¶ˆå·¥ä½œ
+	CMD_APP_KX_QUERY_STATUS				= 0X00B2,			//APPæŸ¥è¯¢è®¾å¤‡çŠ¶æ€
+	CMD_APP_KX_START_MENU				= 0X00B5,			//Appå¯åŠ¨èœå•
+	CMD_APP_KX_LAMP_ENABLE				= 0X1000,			//APPå¼€å…³ç‚‰ç¯
+	CMD_APP_KX_ROT_ENABLE				= 0X1001,			//APPå¼€å…³è½¬å‰
+	CMD_APP_KX_MODIFY_PARAMETER			= 0X1002,			//Appå‚æ•°ä¿®æ”¹
+	CMD_APP_KX_SKIP_PRE_HEAT			= 0X1004,			//APPé¢„çƒ­è·³è¿‡
+	CMD_APP_KX_PRE_HEAT_KEEP			= 0X1005,			//APPé¢„çƒ­ä¿æŒ
+	CMD_APP_KX_SNAPSHOT					= 0X820B,			//APPé€šçŸ¥è®¾å¤‡å‡†å¤‡æŠ“å›¾
+	CMD_APP_KX_ERR_DATA					= 0X820A,			//è®¾å¤‡å¯åŠ¨æ™ºèƒ½çƒ˜ç„™
 
-#define KXModel_H							0x94  //Éè±¸ÐÍºÅ
-#define KXModel_L							0xfc  //Éè±¸ÐÍºÅ
+	/*wiifæ¨¡ç»„ç»™è®¾å¤‡å‘çš„æŒ‡ä»¤*/
+	CMD_WIFI_KX_CAMMER_STATUS			= 0X2000,			//WIFIæ¨¡ç»„ä¸‹å‘æ‘„åƒå¤´çŠ¶æ€ä¿¡æ¯
 
-#define  PROGRAM_VER_GB						0x00 //Éè±¸³ÌÐò°æ±¾
+}COMMAND_TypeDef;
 
-#define SEND_INTERVAL_TIMER 				300			//2msÒ»´Î
-#define RECV_OUT_TIMER						500
-#define ACK_TIMER							250	
+/*wifiçš„çŠ¶æ€ç±»åž‹ï¼ˆä¸å…è®¸ä¿®æ”¹å€¼ï¼‰*/
+typedef enum {
+	TRY_CONNET_ROUTER			= 0x00,						//æœªè”ç½‘çŠ¶æ€æ­£åœ¨å°è¯•è¿žæŽ¥è·¯ç”±å™¨ï¼ˆæŒ‡ç¤ºç¯ç­ï¼‰
+	CAN_NOT_CONNET_SERVER,									//æ— æ³•è¿žæŽ¥æœåŠ¡å™¨ï¼ˆæŒ‡ç¤ºç¯åŒ 02 çŠ¶æ€ï¼‰
+	CONNET_ROUTER_OK,										//å·²è¿žæŽ¥è·¯ç”±å™¨ï¼ˆæŒ‡ç¤ºç¯æ…¢é—ªçƒ 0.5s äº® 0.5s ç­ï¼‰
+	CONNET_SERVER_OK,										//å·²è¿žæŽ¥æœåŠ¡å™¨ï¼ˆæŒ‡ç¤ºç¯å¸¸äº®ï¼‰
+	SMART_LINK_OK_WAIT,										//å·²è¿›å…¥ SmartLink ç­‰å¾… App é…ç½®(æŒ‡ç¤ºç¯æ€¥é—ª0.1s äº® 0.1s ç­)
+	RESERVE_05,												//é¢„ç•™
+	RESERVE_06,												//é¢„ç•™
+	SMART_LINK_OK,											//SmartLink é…ç½®æˆåŠŸï¼ˆæŒ‡ç¤ºç¯å¸¸äº®åŒä¸Š 02çŠ¶æ€ï¼‰
+	SOFT_AP_STATUS,											//SoftAP çŠ¶æ€(åŒ 04 çŠ¶æ€ï¼šæŒ‡ç¤ºç¯æ€¥é—ª 0.1s äº® 0.1sç­)
 
-#define CMD_NUM_MAX             10
+}WIFI_STATUS_TypeDef;
 
-typedef struct
-{
-   
-	unsigned char CCC5GoUpAck;
-	unsigned char CCC9ReBootAck;
-//****************************************************
-
-	//¹¤×÷×´Ì¬     0x00B3
-
-	unsigned char McuMumeNumber_0;  //²Ë°¸±àÂë 
-	unsigned char McuMumeNumber_1;  //²Ë°¸±àÂë 
- 	unsigned char McuMumeNumber_2;  //²Ë°¸±àÂë
-	unsigned char McuMumeNumber_3;  //²Ë°¸±àÂë 
-	unsigned char McuyuyueEn; 		 //Ô¤Ô¼Ê¹ÄÜ£¿0x01 Ê¹ÄÜ
-	unsigned char McuyuyueFlag; 		 //Ô¤Ô¼±êÖ¾Î» 0x01 Ä¬ÈÏÓÐÔ¤Ô¼
-	unsigned char McuyuyueTimer_H; 		 //Ô¤Ô¼Ê±¼ä
-	unsigned char McuyuyueTimer_L; 		 //Ô¤Ô¼Ê±¼ä
-	unsigned char McuyureEn; 		 //Ô¤ÈÈÊ¹ÄÜ£¿0x01 Ê¹ÄÜ
-	unsigned char McuyureFlag; 		 //Ô¤ÈÈ±êÖ¾Î» 0x01 Ä¬ÈÏÓÐÔ¤ÈÈ
-	unsigned char McuyureTimer_H; 		 //Ô¤ÈÈÊ±¼ä
-	unsigned char McuyureTimer_L; 		 //Ô¤ÈÈÊ±¼ä
-	unsigned char McuyureKeepFlag; 		 //Ô¤ÈÈ±£³Ö
-	unsigned char McuyureKeepTimer; 	 //Ô¤ÈÈ±£³ÖÊ±¼ä
-	unsigned char WorkStep1_Top_Temp; 	 	//¹¤×÷µÚÒ»²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep1_Bot_Temp;  		//¹¤×÷µÚÒ»²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep1_work_Time;  	//¹¤×÷µÚÒ»²½¹¤×÷Ê±¼ä
-	unsigned char WorkStep2_Top_Temp;  		//¹¤×÷µÚ2²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep2_Bot_Temp;	  	//¹¤×÷µÚ2²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep2_work_Time;  	//¹¤×÷µÚ2²½¹¤×÷Ê±¼ä
-	unsigned char WorkStep3_Top_Temp;		//¹¤×÷µÚ3²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep3_Bot_Temp;		//¹¤×÷µÚ3²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep3_work_Time;		//¹¤×÷µÚ3²½¹¤×÷Ê±¼ä
-	unsigned char Temp_Ajust_Line;    		//ÎÂ¶Èµ÷½Ú ·Ö½çµã
-	unsigned char Temp_Ajust_small;    		//ÎÂ¶Èµ÷½Ú Ð¡²½³¤
-	unsigned char Temp_Ajust_large;    		//ÎÂ¶Èµ÷½Ú ´ó²½³¤
-	unsigned char Temp_Ajust_samllest;    	//ÎÂ¶Èµ÷½Ú ×îÐ¡ÎÂ¶È
-	unsigned char Temp_Ajust_largeest;    	//ÎÂ¶Èµ÷½Ú ×î´óÎÂ¶È
-	unsigned char Timer_Ajust_Min;    		//¿Éµ÷×îÐ¡
-	unsigned char Timer_Ajust_Max;    		//¿Éµ÷×î´ó
-	unsigned char zhuanchaSta;              //×ª²æ×´Ì¬ 1¿ª 0¹Ø
-	unsigned char LudengSta;              	//Â¯µÆ×´Ì¬	1¿ª 0¹Ø
-	unsigned char Resver_1;					//Ô¤Áô
-	unsigned char Resver_2;					//Ô¤Áô
-	unsigned char Resver_3;					//Ô¤Áô
-	unsigned char Resver_4;					//Ô¤Áô
-	unsigned char Resver_5;					//Ô¤Áô
-	unsigned char Resver_6;					//Ô¤Áô
-
-//********************************************************************
-
-	unsigned char LudengONOFF;	
-	unsigned char ZhuanchaONOFF;	
-	unsigned char WorkRevise_Top_temp;
-	unsigned char WorkRevise_Bot_temp;
-	unsigned char WorkRevise_time;
-	unsigned char Yurejump;
-	unsigned char YureKeep;
-	unsigned char YureKeeptime;
-	unsigned char CamerSta;	
-	unsigned char CamerErr;
-	unsigned char Camerlast;
-	unsigned char FoodMsg;	
-	unsigned char FoodMsgLast;	
-	unsigned char AutoLoseCause;
-	unsigned char AutoLoseCause_0;	
-	unsigned char AutoLoseCause_1;	
-	unsigned char AutoLoseCause_3;	
+/*å…è®¸è¯»å–çš„WIfiä¿¡æ¯*/
+typedef enum {
+	WIFI_STATUS							= 0x70,				//wifiæ¨¡ç»„çŠ¶æ€
 	
-}MCURevWifi_str;
+}WIFI_INF_TypeDef;
 
-extern MCURevWifi_str xdata MCURevWifiDate;
+void InitWifiUartIo(void);
+void InitWifiVariable(void);
+void InitWifiUart(void);
+void WifiDealFunction(void);
 
-typedef struct
-{
-	unsigned char McuWorkSta; //¹¤×÷×´Ì¬     0x5000
-	unsigned char McuMumeNumber_0;  //²Ë°¸±àÂë 
-	unsigned char McuMumeNumber_1;  //²Ë°¸±àÂë 
- 	unsigned char McuMumeNumber_2;  //²Ë°¸±àÂë 
-	unsigned char McuMumeNumber_3;  //²Ë°¸±àÂë 
-	unsigned char McuyuyueEn; 		 //Ô¤Ô¼Ê¹ÄÜ£¿0x01 Ê¹ÄÜ
-	unsigned char McuyuyueFlag; 		 //Ô¤Ô¼±êÖ¾Î» 0x01 Ä¬ÈÏÓÐÔ¤Ô¼
-	unsigned char McuyuyueTimer_H; 		 //Ô¤Ô¼Ê±¼ä
-	unsigned char McuyuyueTimer_L; 		 //Ô¤Ô¼Ê±¼ä
-	unsigned char McuyureEn; 		 //Ô¤ÈÈÊ¹ÄÜ£¿0x01 Ê¹ÄÜ
-	unsigned char McuyureFlag; 		 //Ô¤ÈÈ±êÖ¾Î» 0x01 Ä¬ÈÏÓÐÔ¤ÈÈ
-	unsigned char McuyureTimer_H; 		 //Ô¤ÈÈÊ±¼ä
-	unsigned char McuyureTimer_L; 		 //Ô¤ÈÈÊ±¼ä
-	unsigned char McuyureKeepFlag; 		 //Ô¤ÈÈ±£³Ö
-	unsigned char McuyureKeepTimer; 	 //Ô¤ÈÈ±£³ÖÊ±¼ä
-	unsigned char WorkStep1_Top_Temp; 	 	//¹¤×÷µÚÒ»²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep1_Bot_Temp;  		//¹¤×÷µÚÒ»²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep1_work_Time;  	//¹¤×÷µÚÒ»²½¹¤×÷Ê±¼ä
-	unsigned char WorkStep2_Top_Temp;  		//¹¤×÷µÚ2²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep2_Bot_Temp;	  	//¹¤×÷µÚ2²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep2_work_Time;  	//¹¤×÷µÚ2²½¹¤×÷Ê±¼ä
-	unsigned char WorkStep3_Top_Temp;		//¹¤×÷µÚ3²½ÉÏ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep3_Bot_Temp;		//¹¤×÷µÚ3²½ÏÂ¹ÜµÄÎÂ¶È
-	unsigned char WorkStep3_work_Time;		//¹¤×÷µÚ3²½¹¤×÷Ê±¼ä
-	unsigned char Temp_Ajust_Line;    		//ÎÂ¶Èµ÷½Ú ·Ö½çµã
-	unsigned char Temp_Ajust_small;    		//ÎÂ¶Èµ÷½Ú Ð¡²½³¤
-	unsigned char Temp_Ajust_large;    		//ÎÂ¶Èµ÷½Ú ´ó²½³¤
-	unsigned char Temp_Ajust_samllest;    	//ÎÂ¶Èµ÷½Ú ×îÐ¡ÎÂ¶È
-	unsigned char Temp_Ajust_largeest;    	//ÎÂ¶Èµ÷½Ú ×î´óÎÂ¶È
-	unsigned char Timer_work_leftMin;    	//Ê£Óà¹¤×÷Ê±¼ä
-	unsigned char Timer_work_leftsecond;    //Ê£Óà¹¤×÷Ê±¼äÃëÖÓ
-	unsigned char Timer_Ajust_Min;    		//¿Éµ÷×îÐ¡
-	unsigned char Timer_Ajust_Max;    		//¿Éµ÷×î´ó
-	unsigned char zhuanchaSta;              //×ª²æ×´Ì¬ 1¿ª 0¹Ø
-	unsigned char LudengSta;              	//Â¯µÆ×´Ì¬	1¿ª 0¹Ø
-	unsigned char RealTemp_Top;				//ÉÏ¹ÜÊµÊ±ÎÂ¶È
-	unsigned char RealTemp_Bot;				//ÏÂ¹ÜÊµÊ±ÎÂ¶È
-	unsigned char Resver_1;					//Ô¤Áô
-	unsigned char Resver_2;					//Ô¤Áô
-	unsigned char Resver_3;					//Ô¤Áô
-	unsigned char Resver_4;					//Ô¤Áô
-	unsigned char Resver_5;					//Ô¤Áô
-	unsigned char Resver_6;					//Ô¤Áô
-	unsigned char ErroDate_H;              //¹ÊÕÏ´úÂë
-	unsigned char ErroDate_L;              //¹ÊÕÏ´úÂë
-//****************************************************************************0x6003
-
-	unsigned char KeyNumber; //°´¼ü¸öÊý
-	unsigned char KeyCountN[10];
-}MCUSendWifi_str;
-
-extern MCUSendWifi_str xdata MCUSendWifiDate;
-
-#define	MCUSendCmdflag_Date				MCUSendCmdflag_byte02.byte16     //
-extern TYPE_BYTE16 MCUSendCmdflag_byte02;//
-
-#define	CmdSmartlinkStart_flag					MCUSendCmdflag_byte02.b1.b0//smartlink
-#define	CmdRemovelinkStart_flag					MCUSendCmdflag_byte02.b1.b1//½â°ó
-#define	CmdSbGoUpStart_flag						MCUSendCmdflag_byte02.b1.b2//Éè±¸ÒªÇó¹Ì¼þÉý¼¶
-#define	CmdSbReBootStart_flag					MCUSendCmdflag_byte02.b1.b3//Éè±¸ÒªÇóÖØÆôwifi
-#define	CmdSbReprotStart_flag					MCUSendCmdflag_byte02.b1.b4//Éè±¸ÉÏ±¨×´Ì¬
-#define	CmdSbAutoBootStart_flag					MCUSendCmdflag_byte02.b1.b5//Éè±¸Æô¶¯ÖÇÄÜºæ±º
-#define	CmdSbKeyActionStart_flag				MCUSendCmdflag_byte02.b1.b6//°´¼ü
-
-#define	SendCmdflag_Date				SendCmdflag_byte02.byte16     //
-extern TYPE_BYTE16 SendCmdflag_byte02;//
-
-#define	HandsCmd_OK_flag				SendCmdflag_byte02.b1.b0//ÎÕÊÖ
-#define	McuSendWifi_ACK_flag			SendCmdflag_byte02.b1.b1//Ðè²»ÐèÒªÓ¦´ð  1ÐèÒª£¬  0²»ÐèÒª
-
-#define	RevCmdflag_Date				RevCmdflag_byte02.byte16     //
-extern TYPE_BYTE16 RevCmdflag_byte02;//
-
-#define	RevWifiEnd_flag					RevCmdflag_byte02.b1.b0//½ÓÊÕÊý¾ÝÍê³É
-#define	RevWifiworking_flag				RevCmdflag_byte02.b1.b1//½ÓÊÕÊý¾Ý¹ý³ÌÖÐ
-#define frameHead_H_Flag				RevCmdflag_byte02.b1.b3//
-#define frameHead_L_Flag				RevCmdflag_byte02.b1.b4//
-#define MCUSendWorking_Flag				RevCmdflag_byte02.b1.b5//·¢ËÍÖÐ
-#define MCUSendStart_Flag				RevCmdflag_byte02.b1.b6//¿ªÊ¼·¢ËÍ
-#define MCUSmartlinkWorking_Flag		RevCmdflag_byte02.b1.b6//smartlink ÖÐ
-
-//***************************************************************************************************
-
-//Éè±¸¡ª¡ª>Ä£¿é
-
-
-typedef struct
-{
-   
-	unsigned char Cmdcode_H;	 	//Ö¸Áî¸ß°ËÎ»
-	unsigned char Cmdcode_L; 		//Ö¸ÁîµÍ°ËÎ»
- 	unsigned char LengthDate_H;		//Êý¾Ý³¤¶È
- 	unsigned char LengthDate_L;
-	unsigned char EquNumber_H;		//Éè±¸±àºÅ¸ß°ËÎ»
-	unsigned char EquNumber_L;		//Éè±¸±àºÅµÍ°ËÎ»
-	unsigned char ProtcolVersion;	//Í¨Ñ¶Ð­Òé°æ±¾
-	unsigned char EquVersion;		//Éè±¸¹Ì¼þ°æ±¾	
-	unsigned char Datelarge_H;		//DateÇø×î´ó³¤¶È¸ß°ËÎ»
-	unsigned char Datelarge_L;		//DateÇø×î´ó³¤¶ÈµÍ°ËÎ»
-	unsigned char HardWareVersion;//Éè±¸Ó²¼þ°æ±¾
-	unsigned char Remove_sta;		//½â°óºóÄ£×éµÄ×´Ì¬£¬0£ºÄ¬ÈÏÄ£Ê½ 1£º½øÈëAPÄ£Ê½     2:½øÈësarmlink  3£º½øÈëÀ¶ÑÀ    
-
-	
-}MCUSend_hands;
-
-extern MCUSend_hands xdata MCUSendDate_hands;
-
-typedef struct
-{
-   
-	unsigned char Aanser_H;	 		//Ó¦´ð½á¹û¸ß°ËÎ»
-	unsigned char Aanser_L; 		//Ó¦´ð½á¹ûµÍ°ËÎ»
- 	unsigned char WIFISta;			//wifi×´Ì¬ 
- 	/*
-		00£ºÎ´ÁªÍø
-		01£ºÎÞ·¨Á¬½Ó·þÎñÆ÷
-		02£ºÒÑ¾­Á¬½ÓÂ·ÓÉÆ÷
-		03£ºÒÑ¾­Á¬½Ó·þÎñÆ÷
-		04£ºÒÑ¾­½øÈësmartlink
-		05£ºÔ¤Áô
-		06£ºÔ¤Áô
-		07£ºsartlinkÅäÖÃ³É¹¦
-		08£ºap×´Ì¬
-		
-
- 	*/
-   
-}MCURev_hands;
-
-extern MCURev_hands xdata MCURevDate_hands;
-
-
-//***************************************************************************************************
-
-
-
-//***************************************************************************************************
-//Éè±¸¡ª¡ª>Ä£¿é
-
-
-typedef struct
-{
-   
-	unsigned char Cmdcode_H;	 	//Ö¸Áî¸ß°ËÎ»
-	unsigned char Cmdcode_L; 		//Ö¸ÁîµÍ°ËÎ»
- 	unsigned char CmdDtae_H;     	//00
-	unsigned char CmdDtae_L;		//00
-	
-}MCUSend_SmartLink;
-
-extern MCUSend_SmartLink xdata MCUSendDate_SmartLink;
-
-typedef struct
-{
-   
-	unsigned char Aanser_H;	 		//½á¹û¸ß°ËÎ»
-	unsigned char Aanser_L; 		//½á¹ûµÍ°ËÎ»
- 
-	
-}MCURev_SmartLink;
-
-extern MCURev_SmartLink xdata MCURevDate_SmartLink;
-
-//***************************************************************************************************
-
-
-
-//***************************************************************************************************
-//Éè±¸ÒªÇó¹Ì¼þÉý¼¶            Éè±¸¡ª¡ª>Ä£¿é
-
-typedef struct
-{
-   
-	unsigned char Cmdcode_H;	 	//Ö¸Áî¸ß°ËÎ»
-	unsigned char Cmdcode_L; 		//Ö¸ÁîµÍ°ËÎ»
- 	unsigned char LengthDate_H;		//Êý¾Ý³¤¶È
-	unsigned char LengthDate_L;		//Êý¾Ý³¤¶È
-	unsigned char WIFISendDateLength_H;  //Ã¿Ò»Ö¡µÄÊý¾Ý³¤¶È
-	unsigned char WIFISendDateLength_L;
-	
-}MCUSend_SoftGoUp;
-
-extern MCUSend_SoftGoUp xdata MCUSendDate_SoftGoUp;
-
-typedef struct     //FAFB 00 00 00 80 CCC5 0002 0000 xx
-{
-   
-	unsigned char Aanser_H;	 		//½á¹û¸ß°ËÎ»
-	unsigned char Aanser_L; 		//½á¹ûµÍ°ËÎ»
- 
-	
-}MCURev_SoftGoUp;
-
-extern MCURev_SoftGoUp xdata MCURevDate_SoftGoUp;
-
-//***************************************************************************************************
-
-
-//***************************************************************************************************
-//Éè±¸ÖØÆôWIFIÄ£¿é         Éè±¸¡ª¡ª>Ä£¿é
-
-typedef struct
-{
-   
-	unsigned char Cmdcode_H;	 	//Ö¸Áî¸ß°ËÎ»
-	unsigned char Cmdcode_L; 		//Ö¸ÁîµÍ°ËÎ»
- 
-	unsigned char SendDate_H;  		//Êý¾Ý
-	unsigned char SendDate_L;
-	
-}MCUSend_ReBoot;
-
-extern MCUSend_ReBoot xdata MCUSendDate_ReBoot;
-
-typedef struct     //FAFB 00 00 00 80 CCC9 0002 0000 xx
-{
-   
-	unsigned char Aanser_H;	 		//½á¹û¸ß°ËÎ»
-	unsigned char Aanser_L; 		//½á¹ûµÍ°ËÎ»
- 
-	
-}MCURev_ReBoot;
-
-extern MCURev_ReBoot xdata MCURevDate_ReBoot;
-
-//***************************************************************************************************
-
-
-#define	HandsCmd_val	0x01  //ÎÕÊÖ
-
-extern void Uart0Init(void);
-extern void WifiDealFunction(void);
-void CmdHandVariableInit(void);
-void CmdSmartLinkVariableInit(void);
-void CmdSoftGoUpVariableInit(void);
-void CmdReBootVariableInit(void);
-extern void Cmd0x5000VariableIint(void);
+void SendCommand(COMMAND_TypeDef cmd);
+unsigned char ReadWifiInf(WIFI_INF_TypeDef inf);
 
 #endif

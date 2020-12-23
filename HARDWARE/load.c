@@ -15,6 +15,8 @@ LOAD_CRL_MESSAGE xdata			loadCrlData;				//负载控制的数据
 		 bit					steamOpenFlag;				//锅炉开启标志
 		 bit					sanReOpenFlag;				//电源板散热开启标志
 
+		 bit					g_LedOpenFlag;				//照明灯开启标志
+
 /*空气炸功能预热步骤控温参数查询表*/
 unsigned int code OnlyBakePreHeat_Table[35]=
 {
@@ -1379,11 +1381,18 @@ void LoadCrl(void)
 	if(g_sysType == SysModeWork)								//工作状态下，开LED灯和摄像头散热风扇
 	{
 		P_CAMERA_FAN = 1;
-		P_CAMERA_LED = 1;
 	}
 	else
 	{
 		P_CAMERA_FAN = 0;
+	}
+
+	if(g_LedOpenFlag)
+	{
+		P_CAMERA_LED = 1;
+	}
+	else
+	{
 		P_CAMERA_LED = 0;
 	}
 

@@ -439,7 +439,8 @@ void TouchKeyDealSubroutine(void)
 				break;
 
 				case KEY_ORDER:
-					CmdSmartlinkStart_flag = 1;
+					SendCommand(CMD_KX_APP_REMOVE_LINK);
+					gU8_buzzerType = BUZ_JK_KEY;			//发出按键有效蜂鸣
 				break;
 
 				case KEY_CHANGE_FUN:

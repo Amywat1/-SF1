@@ -16,8 +16,8 @@
 #include "sysmode.h"
 #include "load.h"
 #include "measure.h"
-#include "TYPE_DEF.h"
-#include "WIFI.H"
+#include "wifi.h"
+#include "common_sino_wealth.h"
 
 #ifdef DEBUG
 #include "uart_send_data.h"

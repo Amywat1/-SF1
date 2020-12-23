@@ -4,6 +4,37 @@ enum _SYS_Type_     	g_sysType;              		//系统状态
 enum _ERROR_Type_		g_enContinueErr;				//可继续工作报警类型
 enum _WATER_YIELD_TYPE_	g_waterYieldType;				//水泵出水状态
 
+
+MENU_NUM_TypeDef		u16MenuNum;						//菜单编码
+unsigned char	xdata	u8OrderEnable;					//预约使能
+unsigned int	xdata	u16OrderTime;					//预约时间
+unsigned char	xdata	u8PreHeartEnable;				//预热使能
+unsigned int	xdata	u16PreHeartTime;				//预热时间
+unsigned char	xdata	u8PreHeartKeepEnable;			//预热保持使能
+unsigned char	xdata	u8PreHeartKeepTime;				//预热保持时间
+unsigned char	xdata	u8TopTempStep_1;				//第一步上管温度
+unsigned char	xdata	u8BotTempStep_1; 				//第一步下管温度
+unsigned char	xdata	u8WorkTimeStep_1;				//第一步工作时间
+unsigned char	xdata	u8TopTempStep_2;				//第二部上管温度
+unsigned char	xdata	u8BotTempStep_2;				//第二部下管温度
+unsigned char	xdata	u8WorkTimeStep_2;				//第二部工作时间
+unsigned char	xdata	u8TopTempStep_3;				//第三步上管温度
+unsigned char	xdata	u8BotTempStep_3;				//第三步下管温度
+unsigned char	xdata	u8WorkTimeStep_3;				//第三步工作时间
+unsigned char	xdata	u8TempStepDemarcation;			//温度步长改变的分界点
+unsigned char	xdata	u8TempStepSmall;				//温度小于分界点调节步长(小步长)
+unsigned char	xdata	u8TempStepLong;					//设置大于分界点调节步长(大步长)
+unsigned char	xdata	u8TempMin;						//可调的最小温度
+unsigned char	xdata	u8TempMax;						//可调的最大温度
+unsigned char	xdata	u8RemainTimeMinute;				//剩余工作时间（分）
+unsigned char	xdata	u8RemainTimeSecond;				//剩余工作时间（秒）
+unsigned char	xdata	u8TimeMin;						//可调的最小时间
+unsigned char	xdata	u8TimeMax;						//可调的最大时间
+FUNCTION_State	xdata	u8RotOpenFlag;					//转叉启动标志
+FUNCTION_State	xdata	u8LampOpenFlag;					//炉灯启动标志
+unsigned char	xdata	u8TimeStep;						//时间步长
+
+
 unsigned char xdata		g_menuNumber;					//菜单编号
 
 unsigned char xdata		g_zeroType;						//过零状态（有过零，无过零）
@@ -164,6 +195,8 @@ void SysModelCrl(void)
 
 	static unsigned char xdata  s_keepWarmMaxTime			= 0;
 
+	static unsigned char xdata s_reporterCycleCnt			= 0;		//定时上报计数
+
 	if(g_sysType == SysModePCBCheck)									//PCB自检状态时
 	{
 		if(g_selfCheckStep == 1)										//自检第一步记录盖状态
@@ -244,7 +277,7 @@ void SysModelCrl(void)
 		g_dispFlashFlag = ~g_dispFlashFlag;								//一定频率闪烁
 	}
 	
-//	ErrorCheck();														//报警检测
+	ErrorCheck();														//报警检测
 	
 	if(g_flg500ms)														//500ms时间进一次
 	{
@@ -259,6 +292,14 @@ void SysModelCrl(void)
 				g_selfCheckEnFlag = 0;									//禁止进入自检
 				s_powerUpFifteenSecondsCnt = POWER_UP_FIFTEEN_SECONDS;
 			}
+		}
+
+		/**/
+		s_reporterCycleCnt++;
+		if(s_reporterCycleCnt >= 60)						//500ms时基，每30S上报一次设备状态
+		{
+			s_reporterCycleCnt = 0;
+			SendCommand(CMD_KX_APP_REPORT_STATUS);
 		}
 		
 		/*温度/时间等待时间计时*/
