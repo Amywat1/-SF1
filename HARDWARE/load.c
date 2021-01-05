@@ -1154,6 +1154,8 @@ void LoadCrl(void)
 	static unsigned char s_maybeLackPumpTemp	= 0;				//可能缺水时，水泵档位缓存值
 	static bit			 s_maybeLackWaterFlag 	= 0;				//可能缺水标志
 
+	unsigned char s_delayCnt = 0;
+
 	/*工作或保温状态下*/
 	if((g_sysType == SysModeWork) || (g_sysType == SysModeWarm))
 	{
@@ -1390,9 +1392,16 @@ void LoadCrl(void)
 	if(g_LedOpenFlag)
 	{
 		P_CAMERA_LED = 1;
+		s_delayCnt++;
+		if(s_delayCnt >= 40)
+		{
+			g_820ASureSendFlag = 1;
+		}
 	}
 	else
 	{
+		s_delayCnt = 0;
+		g_820ASureSendFlag = 0;
 		P_CAMERA_LED = 0;
 	}
 

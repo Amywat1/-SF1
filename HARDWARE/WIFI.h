@@ -23,7 +23,7 @@ typedef enum {
 	CMD_APP_KX_SKIP_PRE_HEAT			= 0X1004,			//APP预热跳过
 	CMD_APP_KX_PRE_HEAT_KEEP			= 0X1005,			//APP预热保持
 	CMD_APP_KX_SNAPSHOT					= 0X820B,			//APP通知设备准备抓图
-	CMD_APP_KX_ERR_DATA					= 0X820A,			//设备启动智能烘焙
+	CMD_APP_KX_SMART_BAKING				= 0X820A,			//设备启动智能烘焙
 
 	/*wiif模组给设备发的指令*/
 	CMD_WIFI_KX_CAMMER_STATUS			= 0X2000,			//WIFI模组下发摄像头状态信息
@@ -49,6 +49,8 @@ typedef enum {
 	WIFI_STATUS							= 0x70,				//wifi模组状态
 	
 }WIFI_INF_TypeDef;
+
+extern bit g_820ASureSendFlag;
 
 void InitWifiUartIo(void);
 void InitWifiVariable(void);

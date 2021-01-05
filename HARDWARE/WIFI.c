@@ -174,6 +174,8 @@ typedef struct {
 
 MCU_WIFI_INF_MemberDef xdata	mcuWifi;						//MCU与wifi通讯的串口信息
 
+bit g_820ASureSendFlag = 0;
+
 /*-----------------------------------------------------------------------------
 Description:		发送命令
 					cmd：		需要发送的命令
@@ -217,8 +219,8 @@ void SendCommand(COMMAND_TypeDef cmd)
 		mcuWifi.u2CmdKeyReportFlag			= 1;
 		break;
 
-	case CMD_APP_KX_STOP_WORK:
-		
+	case CMD_APP_KX_SMART_BAKING:
+		mcuWifi.u2CmdSmartBakingFlag		= 1;
 		break;
 	
 	default:
@@ -564,7 +566,12 @@ void DeviceWorkDataUpdate(void)
 	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[23]);	//预热保持时间
 
 	g_nowStepworkTemp 	= mcuWifi.recvInf.u8Recv_Buff[24];
-	loadCrlData.plateHeatGear = (mcuWifi.recvInf.u8Recv_Buff[25])*2;
+	if((g_nowStepworkTemp < 30) || (g_nowStepworkTemp > 200))
+	{
+		g_nowStepworkTemp = 200;		//温度超过范围，默认200℃
+	}
+	// loadCrlData.plateHeatGear = (mcuWifi.recvInf.u8Recv_Buff[25])*2;
+	g_nowStepTechnology = ONLY_BAKE;
 	g_workTimeAll		= mcuWifi.recvInf.u8Recv_Buff[26];
 
 	// ChangeMachineStatus(WORK_TEMP_TOP_1,	mcuWifi.recvInf.u8Recv_Buff[24]);	//第一步上管温度
@@ -653,7 +660,7 @@ void SendUart(void)
 		{
 			// lampStatus = g_LedOpenFlag;			//读炉灯状态
 
-			if(g_LedOpenFlag == 1)
+			if(g_820ASureSendFlag == 1)
 			{
 				mcuWifi.u2CmdSmartBakingFlag	= 0;		//指令已执行
 				mcuWifi.sendInf.u2WifiAckFlag	= 0;
@@ -1199,7 +1206,7 @@ void RecvUart(void)
 					// nowSysMode = (unsigned char)(ReadMachineStatus(SYS_MODE));
 
 						mcuWifi.u2CmdSmartBakingFlag = 1;
-						g_sysType = SYS_MODE_SMART_IDENTIFICATION;	//转到智能识别状态
+						// g_sysType = SYS_MODE_SMART_IDENTIFICATION;	//转到智能识别状态
 
 						g_LedOpenFlag = 1;
 						//炉灯一直亮，在驱动中开启

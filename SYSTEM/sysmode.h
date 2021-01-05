@@ -209,6 +209,9 @@ extern unsigned char xdata		g_pidDispStep;					//PID步骤
 extern unsigned char xdata		g_debugDispStep;				//Debug步骤
 extern unsigned char xdata		g_cleanIncrustantStep;			//水垢清洁步骤
 
+extern bit						g_dispQuickFlashFlag;			//快速闪烁标志位
+extern unsigned char xdata		g_dispQuickFlashCnt;			//快速闪烁计数
+
 extern unsigned char code MenuDefaultValue_Table[6][22];
 
 void InitSysModeVariable(void);

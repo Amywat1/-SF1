@@ -16,6 +16,7 @@ unsigned int				keyCnt;							//按键计时
 		 bit				keyReleaseFlag;					//按键抬起标志位
 		 bit				g_adjPressFlag;					//加减键按下标志
 		 bit				keyOnOffLongPressFlag;			//启动取消键长按标志
+		 bit				keyOrderLongPressFlag;			//预约键长按标志
 
 unsigned int code			TouchKey_Valid_Threshould_Table[VALID_TOUCHKEY_NUMBER] = {
 //	温度-		启动/取消	时间+		预约	时间-	功能	温度+
@@ -252,7 +253,7 @@ void TouchKeyDeal(void)
 			}
 			
 			/*预约，功能切换键*/
-			else if((keyValue == KEY_ORDER) || (keyValue == KEY_CHANGE_FUN))
+			else if((keyValue == KEY_CHANGE_FUN))
 			{
 				if(keyCnt <= (ELIM_TREMBLING_CNT + 4))	//按键按下时操作
 				{
@@ -278,6 +279,17 @@ void TouchKeyDeal(void)
 				if(keyCnt >= 750)						//长按1.5S
 				{
 					keyOnOffLongPressFlag = 1;			//启动取消键长按
+					keyReleaseFlag = 1;					//按键按下状态
+					TouchKeyDealSubroutine();			//按键处理子程序
+				}
+			}
+
+			/*预约键*/
+			else if(keyValue == KEY_ORDER)
+			{
+				if(keyCnt >= 1000)						//长按2S
+				{
+					keyOrderLongPressFlag = 1;			//预约键长按
 					keyReleaseFlag = 1;					//按键按下状态
 					TouchKeyDealSubroutine();			//按键处理子程序
 				}
@@ -371,10 +383,16 @@ void TouchKeyJudge(void)
 					keyOnOffLongPressFlag = 0;			//启动取消键短按，按键抬起有效
 					TouchKeyDealSubroutine();			//按键处理子程序
 				}
+				else if(keyValue == KEY_ORDER)
+				{
+					keyOrderLongPressFlag = 0;			//预约键键短按，按键抬起有效
+					TouchKeyDealSubroutine();			//按键处理子程序
+				}
 			}
 		}
 		
-		keyOnOffLongPressFlag		= 0;				//启动取消键短按
+		keyOnOffLongPressFlag = 0;						//启动取消键短按
+		keyOrderLongPressFlag = 0;						//预约键键短按
 	
 		keyBuf = KEY_NULL;
 		keyValue = KEY_NULL;
@@ -439,8 +457,18 @@ void TouchKeyDealSubroutine(void)
 				break;
 
 				case KEY_ORDER:
-					SendCommand(CMD_KX_APP_REMOVE_LINK);
-					gU8_buzzerType = BUZ_JK_KEY;			//发出按键有效蜂鸣
+					if(keyOrderLongPressFlag)
+					{
+						SendCommand(CMD_KX_APP_REMOVE_LINK);
+						gU8_buzzerType = BUZ_JK_KEY;			//发出按键有效蜂鸣
+					}
+					else
+					{
+						SendCommand(CMD_APP_KX_SMART_BAKING);
+						g_LedOpenFlag = 1;
+						gU8_buzzerType = BUZ_JK_KEY;			//发出按键有效蜂鸣
+					}
+					
 				break;
 
 				case KEY_CHANGE_FUN:

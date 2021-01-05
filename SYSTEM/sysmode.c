@@ -88,6 +88,9 @@ unsigned char xdata		g_pidDispStep;					//PID步骤
 unsigned char xdata		g_debugDispStep;				//Debug步骤
 unsigned char xdata		g_cleanIncrustantStep;			//水垢清洁步骤
 
+bit						g_dispQuickFlashFlag;			//快速闪烁标志位
+unsigned char xdata		g_dispQuickFlashCnt;			//快速闪烁计数
+
 unsigned char code MenuDefaultValue_Table[6][22]={			//6个菜单的默认参数
 //	(		工艺1	)	(		工艺2	)	(		工艺3	)	(		工艺4	)	（保温工艺）	 （温度调节范围）（时间调节范围）	(		调节是否有效		)
 //	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间		MIN	MAX		MIN	MAX			温度	时间	预约
@@ -275,6 +278,13 @@ void SysModelCrl(void)
 	{
 		g_dispFlashCnt  = 0;
 		g_dispFlashFlag = ~g_dispFlashFlag;								//一定频率闪烁
+	}
+
+	g_dispQuickFlashCnt++;
+	if(g_dispQuickFlashCnt >= DISP_FLASH_FRE)
+	{
+		g_dispQuickFlashCnt  = 0;
+		g_dispQuickFlashFlag = ~g_dispQuickFlashFlag;					//一定频率闪烁
 	}
 	
 	ErrorCheck();														//报警检测

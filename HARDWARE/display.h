@@ -74,6 +74,8 @@
 #define SYMBOL_TEMP				Led_Buff[3].Bits.bit7				//℃标志
 #define SYMBOL_MINITE			Led_Buff[3].Bits.bit2				//分标志
 
+#define DP						Led_Buff[0].Bits.bit7				//
+
 typedef union
 {
 	struct{

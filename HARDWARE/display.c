@@ -284,6 +284,8 @@ void DispCrl(void)
 {
 	unsigned char i = 0;
 
+	unsigned char wifiStatus;
+
 	DispAllOff();
 	
 	switch(g_sysType)
@@ -938,5 +940,34 @@ void DispCrl(void)
 				DIGITAL_THIRD_NUM(DISPDATA_2);
 			}
 			break;
+	}
+
+	/*Wifi图标控制*/
+	wifiStatus = ReadWifiInf(WIFI_STATUS);
+
+	if(wifiStatus == TRY_CONNET_ROUTER)				//WIFI模组处于未联网，尝试连接状态
+	{
+		if(g_dispFlashFlag)
+		{
+			DP = 1;			//500ms闪烁
+		}
+	}
+	else if((wifiStatus == SMART_LINK_OK_WAIT) || (wifiStatus == SOFT_AP_STATUS))
+	{
+		if(g_dispQuickFlashFlag)
+		{
+			DP = 1;			//100ms闪烁
+		}
+	}
+	else if((wifiStatus == CAN_NOT_CONNET_SERVER) || (wifiStatus == CONNET_ROUTER_OK))
+	{
+		if(g_dispFlashFlag)
+		{
+			DP = 1;			//500ms闪烁
+		}
+	}
+	else if(wifiStatus == CONNET_SERVER_OK)			//WIFI模组已连接服务器
+	{
+		DP = 1;				//全亮
 	}
 }
