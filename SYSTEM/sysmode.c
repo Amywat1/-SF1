@@ -91,6 +91,23 @@ unsigned char xdata		g_cleanIncrustantStep;			//水垢清洁步骤
 bit						g_dispQuickFlashFlag;			//快速闪烁标志位
 unsigned char xdata		g_dispQuickFlashCnt;			//快速闪烁计数
 
+
+
+unsigned char xdata		g_recvworkTemp_1		= 100;
+unsigned char xdata		g_recvPlateHeatGear_1	= 0;
+unsigned char xdata		g_recvWorkTime_1		= 0;
+unsigned char xdata		g_recvworkTechnology_1	= NULL_STEP;
+unsigned char xdata		g_recvworkTemp_2 		= 100;
+unsigned char xdata		g_recvPlateHeatGear_2	= 0;
+unsigned char xdata		g_recvWorkTime_2		= 0;
+unsigned char xdata		g_recvworkTechnology_2	= NULL_STEP;
+unsigned char xdata		g_recvworkTemp_3 		= 100;
+unsigned char xdata		g_recvPlateHeatGear_3	= 0;
+unsigned char xdata		g_recvWorkTime_3		= 0;
+unsigned char xdata		g_recvworkTechnology_3	= NULL_STEP;
+
+
+
 unsigned char code MenuDefaultValue_Table[6][22]={			//6个菜单的默认参数
 //	(		工艺1	)	(		工艺2	)	(		工艺3	)	(		工艺4	)	（保温工艺）	 （温度调节范围）（时间调节范围）	(		调节是否有效		)
 //	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间	工艺	温度/时间		MIN	MAX		MIN	MAX			温度	时间	预约
@@ -281,7 +298,7 @@ void SysModelCrl(void)
 	}
 
 	g_dispQuickFlashCnt++;
-	if(g_dispQuickFlashCnt >= DISP_FLASH_FRE)
+	if(g_dispQuickFlashCnt >= 10)
 	{
 		g_dispQuickFlashCnt  = 0;
 		g_dispQuickFlashFlag = ~g_dispQuickFlashFlag;					//一定频率闪烁
@@ -574,26 +591,26 @@ void SysModelCrl(void)
 								/*此处直接转状态，防止500ms后才转*/
 								if(g_workTimeAll == 0)					//工作时间结束
 								{
-									if(g_menuNumber == MENU_6_NUM)
-									{
-										g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][KEEP_WARM_TEMP_NUM];	//加载保温温度
-										g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_WARM_NUM];//加载保温工艺
+									// if(g_menuNumber == MENU_6_NUM)
+									// {
+									// 	g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][KEEP_WARM_TEMP_NUM];	//加载保温温度
+									// 	g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_WARM_NUM];//加载保温工艺
 										
-										g_sysType 		= SysModeWarm;	//转到保温状态
-										g_keepWarmTime	= 0;			//保温时间正计时开始
-										g_workOneMinCnt = 0;
+									// 	g_sysType 		= SysModeWarm;	//转到保温状态
+									// 	g_keepWarmTime	= 0;			//保温时间正计时开始
+									// 	g_workOneMinCnt = 0;
 
-										//切换工艺时，若切换到带蒸工艺，重新赋抽水档位初始值
-										if((g_nowStepTechnology == ONLY_STEAM) || (g_nowStepTechnology == BAKE_STEAM))
-										{
-											g_steamPreHeatFlag 	= 0;	//重新判定锅炉是否预热（重新赋值抽水默认值）
-										}
-									}
-									else
-									{
+									// 	//切换工艺时，若切换到带蒸工艺，重新赋抽水档位初始值
+									// 	if((g_nowStepTechnology == ONLY_STEAM) || (g_nowStepTechnology == BAKE_STEAM))
+									// 	{
+									// 		g_steamPreHeatFlag 	= 0;	//重新判定锅炉是否预热（重新赋值抽水默认值）
+									// 	}
+									// }
+									// else
+									// {
 										g_sysType = SysModeEnd;			//转到工作结束状态
 										s_sysEndWaitCnt = 0;			//工作结束等待时间清零
-									}
+									// }
 
 									g_coolingFanDealyFlag = 1;				//散热风扇延时关闭标志置一
 									s_coolingFanDealyCnt  = 0;				//散热风扇延时关闭计数清零
@@ -611,46 +628,46 @@ void SysModelCrl(void)
 											{
 												g_nowStepNum = 2;			//转入第二步工艺
 
-												g_nowStepworkTime		= MenuDefaultValue_Table[g_menuNumber][STEP_2_TIME_NUM];//加载第二步工艺的默认时间
+												g_nowStepworkTime		= g_recvWorkTime_2;//加载第二步工艺的默认时间
 
 												if(g_nowStepworkTime)		//若工艺时间不为零，则变更工艺和工艺温度
 												{
-													if(g_menuNumber == MENU_5_NUM)		//烤鸡的第二步工艺温度同第一步工艺温度
-													{
-														//工艺温度不变更
-													}
-													else
-													{
-														g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][STEP_2_TEMP_NUM];
-													}
+													// if(g_menuNumber == MENU_5_NUM)		//烤鸡的第二步工艺温度同第一步工艺温度
+													// {
+													// 	//工艺温度不变更
+													// }
+													// else
+													// {
+														g_nowStepworkTemp	= g_recvworkTemp_2;
+													// }
 
-													g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_STEP_2_NUM];	//加载第二步工艺
+													g_nowStepTechnology	= g_recvworkTechnology_2;	//加载第二步工艺
 												}
 											}
 											else if(g_nowStepNum == 2)		//若是第二步工艺结束
 											{
 												g_nowStepNum = 3;			//转入第三步工艺
 												
-												g_nowStepworkTime		= MenuDefaultValue_Table[g_menuNumber][STEP_3_TIME_NUM];//加载第三步工艺的默认时间
+												g_nowStepworkTime		= g_recvWorkTime_3;//加载第三步工艺的默认时间
 
-												if(g_nowStepworkTime)		//若工艺时间不为零，则变更工艺和工艺温度
-												{
-													g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][STEP_3_TEMP_NUM];
-													g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_STEP_3_NUM];	//加载第三步工艺
-												}
+												// if(g_nowStepworkTime)		//若工艺时间不为零，则变更工艺和工艺温度
+												// {
+													g_nowStepworkTemp	= g_recvworkTemp_3;
+													g_nowStepTechnology	= g_recvworkTechnology_3;	//加载第三步工艺
+												// }
 											}
-											else if(g_nowStepNum == 3)			//若是第三步工艺结束
-											{
-												g_nowStepNum = 4;				//转入第四步工艺
+											// else if(g_nowStepNum == 3)			//若是第三步工艺结束
+											// {
+											// 	g_nowStepNum = 4;				//转入第四步工艺
 
-												g_nowStepworkTime		= MenuDefaultValue_Table[g_menuNumber][STEP_4_TIME_NUM];//加载第四步工艺的默认时间
+											// 	g_nowStepworkTime		= MenuDefaultValue_Table[g_menuNumber][STEP_4_TIME_NUM];//加载第四步工艺的默认时间
 
-												if(g_nowStepworkTime)		//若工艺时间不为零，则变更工艺和工艺温度
-												{
-													g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][STEP_4_TEMP_NUM];
-													g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_STEP_4_NUM];	//加载第四步工艺
-												}
-											}
+											// 	if(g_nowStepworkTime)		//若工艺时间不为零，则变更工艺和工艺温度
+											// 	{
+											// 		g_nowStepworkTemp	= MenuDefaultValue_Table[g_menuNumber][STEP_4_TEMP_NUM];
+											// 		g_nowStepTechnology	= MenuDefaultValue_Table[g_menuNumber][TECHNOLOGY_STEP_4_NUM];	//加载第四步工艺
+											// 	}
+											// }
 											
 											g_corePreHeatFlag		= 0;		//切换工艺后重新判断预热
 											g_corePreHeatDelayFlag	= 0;

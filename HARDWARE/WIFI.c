@@ -565,14 +565,174 @@ void DeviceWorkDataUpdate(void)
 	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[22]);	//预热保持
 	// // ChangeMachineStatus(0, mcuWifi.recvInf.u8Recv_Buff[23]);	//预热保持时间
 
-	g_nowStepworkTemp 	= mcuWifi.recvInf.u8Recv_Buff[24];
-	if((g_nowStepworkTemp < 30) || (g_nowStepworkTemp > 200))
+	g_recvworkTemp_1 		= mcuWifi.recvInf.u8Recv_Buff[24];	//赋值第一步工作温度
+	g_recvPlateHeatGear_1	= mcuWifi.recvInf.u8Recv_Buff[25];	//赋值第一步锅炉档位
+	g_recvWorkTime_1		= mcuWifi.recvInf.u8Recv_Buff[26];	//赋值第一步工作时间
+	g_recvworkTemp_2 		= mcuWifi.recvInf.u8Recv_Buff[27];	//赋值第二步工作温度
+	g_recvPlateHeatGear_2	= mcuWifi.recvInf.u8Recv_Buff[28];	//赋值第二步锅炉档位
+	g_recvWorkTime_2		= mcuWifi.recvInf.u8Recv_Buff[29];	//赋值第二步工作时间
+	g_recvworkTemp_3 		= mcuWifi.recvInf.u8Recv_Buff[30];	//赋值第三步工作温度
+	g_recvPlateHeatGear_3	= mcuWifi.recvInf.u8Recv_Buff[31];	//赋值第三步锅炉档位
+	g_recvWorkTime_3		= mcuWifi.recvInf.u8Recv_Buff[32];	//赋值第三步工作时间
+
+	/*第一步温度值准确性判断*/
+	if((g_recvworkTemp_1 != 0) && ((g_recvPlateHeatGear_1 != 0)))	//温度和锅炉档位都不为零，为蒸汽烤工艺
 	{
-		g_nowStepworkTemp = 200;		//温度超过范围，默认200℃
+		g_recvworkTechnology_1 = BAKE_STEAM;
+
+		if((g_recvworkTemp_1 < 100) || (g_recvworkTemp_1 > 200))
+		{
+			g_recvworkTemp_1 = 180;				//温度超过范围，默认180℃
+		}
+
+		if(g_recvPlateHeatGear_1 > 10)
+		{
+			g_recvPlateHeatGear_1 = 5;			//档位超过范围，默认5档
+		}
 	}
-	// loadCrlData.plateHeatGear = (mcuWifi.recvInf.u8Recv_Buff[25])*2;
-	g_nowStepTechnology = ONLY_BAKE;
-	g_workTimeAll		= mcuWifi.recvInf.u8Recv_Buff[26];
+	else if(g_recvworkTemp_1 != 0)								//温度不为零，锅炉档位为零，为空气炸工艺
+	{
+		g_recvworkTechnology_1 = ONLY_BAKE;
+
+		if((g_recvworkTemp_1 < 30) || (g_recvworkTemp_1 > 200))
+		{
+			g_recvworkTemp_1 = 180;				//温度超过范围，默认180℃
+		}
+	}
+	else
+	{
+		g_recvworkTechnology_1 = ONLY_STEAM;
+
+		if((g_recvworkTemp_1 < 80) || (g_recvworkTemp_1 > 110))
+		{
+			g_recvworkTemp_1 = 100;				//温度超过范围，默认100℃
+		}
+		//锅炉档位按默认设定
+	}
+	
+	/*第二步温度值准确性判断*/
+	if((g_recvworkTemp_2 != 0) && ((g_recvPlateHeatGear_2 != 0)))	//温度和锅炉档位都不为零，为蒸汽烤工艺
+	{
+		g_recvworkTechnology_2 = BAKE_STEAM;
+
+		if((g_recvworkTemp_2 < 100) || (g_recvworkTemp_2 > 200))
+		{
+			g_recvworkTemp_2 = 180;				//温度超过范围，默认180℃
+		}
+
+		if(g_recvPlateHeatGear_2 > 10)
+		{
+			g_recvPlateHeatGear_2 = 5;			//档位超过范围，默认5档
+		}
+	}
+	else if(g_recvworkTemp_2 != 0)								//温度不为零，锅炉档位为零，为空气炸工艺
+	{
+		g_recvworkTechnology_2 = ONLY_BAKE;
+
+		if((g_recvworkTemp_2 < 30) || (g_recvworkTemp_2 > 200))
+		{
+			g_recvworkTemp_2 = 180;				//温度超过范围，默认180℃
+		}
+	}
+	else
+	{
+		g_recvworkTechnology_2 = ONLY_STEAM;
+
+		if((g_recvworkTemp_2 < 80) || (g_recvworkTemp_2 > 110))
+		{
+			g_recvworkTemp_2 = 100;				//温度超过范围，默认100℃
+		}
+		//锅炉档位按默认设定
+	}
+
+	/*第三步温度值准确性判断*/
+	if((g_recvworkTemp_3 != 0) && ((g_recvPlateHeatGear_3 != 0)))	//温度和锅炉档位都不为零，为蒸汽烤工艺
+	{
+		g_recvworkTechnology_3 = BAKE_STEAM;
+
+		if((g_recvworkTemp_3 < 100) || (g_recvworkTemp_3 > 200))
+		{
+			g_recvworkTemp_3 = 180;				//温度超过范围，默认180℃
+		}
+
+		if(g_recvPlateHeatGear_3 > 10)
+		{
+			g_recvPlateHeatGear_3 = 5;			//档位超过范围，默认5档
+		}
+	}
+	else if(g_recvworkTemp_3 != 0)								//温度不为零，锅炉档位为零，为空气炸工艺
+	{
+		g_recvworkTechnology_3 = ONLY_BAKE;
+
+		if((g_recvworkTemp_3 < 30) || (g_recvworkTemp_3 > 200))
+		{
+			g_recvworkTemp_3 = 180;				//温度超过范围，默认180℃
+		}
+	}
+	else
+	{
+		g_recvworkTechnology_3 = ONLY_STEAM;
+
+		if((g_recvworkTemp_3 < 80) || (g_recvworkTemp_3 > 110))
+		{
+			g_recvworkTemp_3 = 100;				//温度超过范围，默认100℃
+		}
+		//锅炉档位按默认设定
+	}
+
+	if(mcuWifi.recvInf.u8Recv_Buff[13] == 0x02)			//赋值牛排菜单
+	{
+		g_menuNumber = MENU_6_NUM;
+		g_nowStepworkTemp	= g_recvworkTemp_1;
+		g_nowStepTechnology = g_recvworkTechnology_1;
+		g_nowStepworkTime	= g_recvWorkTime_1;
+		g_workTimeAll		= g_recvWorkTime_1 + g_recvWorkTime_2 + g_recvWorkTime_3;
+		g_tempAdjEnFlag		= NO_ADJ;
+		g_timeAdjEnFlag		= NO_ADJ;
+	}
+	else if(mcuWifi.recvInf.u8Recv_Buff[13] == 0x0F)	//赋值蛋挞菜单
+	{
+		g_menuNumber = MENU_5_NUM;
+		g_nowStepworkTemp	= g_recvworkTemp_1;
+		g_nowStepTechnology = g_recvworkTechnology_1;
+		g_nowStepworkTime	= g_recvWorkTime_1;
+		g_workTimeAll		= g_recvWorkTime_1 + g_recvWorkTime_2 + g_recvWorkTime_3;
+		g_tempAdjEnFlag		= NO_ADJ;
+		g_timeAdjEnFlag		= NO_ADJ;
+	}
+	else if(mcuWifi.recvInf.u8Recv_Buff[13] == 0x0F)	//赋值薯条菜单
+	{
+		g_menuNumber = MENU_4_NUM;
+		g_nowStepworkTemp	= g_recvworkTemp_1;
+		g_nowStepTechnology = g_recvworkTechnology_1;
+		g_nowStepworkTime	= g_recvWorkTime_1;
+		g_workTimeAll		= g_recvWorkTime_1 + g_recvWorkTime_2 + g_recvWorkTime_3;
+		g_tempAdjEnFlag		= NO_ADJ;
+		g_timeAdjEnFlag		= NO_ADJ;
+	}
+	else
+	{
+		if(g_recvworkTechnology_1 == ONLY_BAKE)
+		{
+			g_menuNumber = MENU_1_NUM;
+		}
+		else if(g_recvworkTechnology_1 == BAKE_STEAM)
+		{
+			g_menuNumber = MENU_2_NUM;
+		}
+		else if(g_recvworkTechnology_1 == ONLY_STEAM)
+		{
+			g_menuNumber = MENU_3_NUM;
+		}
+
+		g_nowStepworkTemp	= g_recvworkTemp_1;
+		g_nowStepTechnology = g_recvworkTechnology_1;
+		g_nowStepworkTime	= g_recvWorkTime_1;
+		g_workTimeAll		= g_recvWorkTime_1 + g_recvWorkTime_2 + g_recvWorkTime_3;
+		g_tempAdjEnFlag		= NO_ADJ;
+		g_timeAdjEnFlag		= NO_ADJ;
+	}
+
 
 	// ChangeMachineStatus(WORK_TEMP_TOP_1,	mcuWifi.recvInf.u8Recv_Buff[24]);	//第一步上管温度
 	// ChangeMachineStatus(WORK_TEMP_BOT_1,	mcuWifi.recvInf.u8Recv_Buff[25]);	//第一步下管温度
@@ -1028,6 +1188,31 @@ void RecvUart(void)
 						// }
 
 						g_sysType = SysModeWork;
+
+						g_enContinueErr		= NoError;		//初始无可恢复报警
+						g_waterYieldType 	= NormalType;	//默认正常抽水
+
+						g_workOneMinCnt		= 0;			//1min计时清零
+
+						g_nowStepNum		= 1;			//开始工艺步骤1
+						
+						g_highSteamPowerCnt	= 0;			//纯蒸工艺下高功率输出时间计时清零
+						g_steamLowPowerFlag	= 0;			//纯蒸低功率输出标志清零
+
+						g_tempAdjStateFlag	= 0;			//启动后默认时间调节状态
+						g_timeAdjStateFlag	= 1;
+
+						g_coolingFanDealyFlag = 0;			//散热风扇默认不延时停止
+
+						g_pumpDelayJudgeCnt	= 0;
+
+						if(g_pumpCalibrationFlag == 0)		//若未标定成功
+						{
+							InitPumpCalibrationData();
+						}
+
+						g_dispFlashCnt		= 0;			//闪烁计数清零
+						g_dispFlashFlag		= 0;			//先亮
 
 						// ChangeMachineStatus(NOW_WORK_STEP, 1);						//从第一步开始执行
 						// workTimeAll = (unsigned char)(ReadMachineStatus(WORK_TIME_1));

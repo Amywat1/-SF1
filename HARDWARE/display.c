@@ -947,7 +947,7 @@ void DispCrl(void)
 
 	if(wifiStatus == TRY_CONNET_ROUTER)				//WIFI模组处于未联网，尝试连接状态
 	{
-		if(g_dispFlashFlag)
+		if(g_dispFlashFlag == 0)
 		{
 			DP = 1;			//500ms闪烁
 		}
@@ -961,7 +961,7 @@ void DispCrl(void)
 	}
 	else if((wifiStatus == CAN_NOT_CONNET_SERVER) || (wifiStatus == CONNET_ROUTER_OK))
 	{
-		if(g_dispFlashFlag)
+		if(g_dispFlashFlag == 0)
 		{
 			DP = 1;			//500ms闪烁
 		}

@@ -758,7 +758,7 @@ void TouchKeyDealSubroutine(void)
 				break;
 
 				case KEY_CHANGE_FUN:
-					if(g_menuNumber >= MENU_6_NUM)			//菜单循环
+					if(g_menuNumber >= MENU_3_NUM)			//菜单循环
 					{
 						g_menuNumber = MENU_1_NUM;
 					}
@@ -824,6 +824,10 @@ void TouchKeyDealSubroutine(void)
 
 						g_dispFlashCnt		= 0;			//闪烁计数清零
 						g_dispFlashFlag		= 0;			//先亮
+
+						g_recvWorkTime_1 = 0;
+						g_recvWorkTime_2 = 0;
+						g_recvWorkTime_3 = 0;
 					}
 					
 					gU8_buzzerType = BUZ_JK_KEY;			//发出按键有效蜂鸣

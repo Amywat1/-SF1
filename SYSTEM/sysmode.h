@@ -71,7 +71,7 @@
 #define EN_ADJ                      1                   //可调
 #define NO_ADJ                      0                   //不可调
 
-#define DEFAULT_MENU                MENU_4_NUM          //初始默认菜单
+#define DEFAULT_MENU                MENU_1_NUM          //初始默认菜单
 
 /*枚举各菜单的编号（不允许修改值）*/
 typedef enum {
@@ -213,6 +213,20 @@ extern bit						g_dispQuickFlashFlag;			//快速闪烁标志位
 extern unsigned char xdata		g_dispQuickFlashCnt;			//快速闪烁计数
 
 extern unsigned char code MenuDefaultValue_Table[6][22];
+
+
+extern unsigned char xdata		g_recvworkTemp_1;
+extern unsigned char xdata		g_recvPlateHeatGear_1;
+extern unsigned char xdata		g_recvWorkTime_1;
+extern unsigned char xdata		g_recvworkTechnology_1;
+extern unsigned char xdata		g_recvworkTemp_2;
+extern unsigned char xdata		g_recvPlateHeatGear_2;
+extern unsigned char xdata		g_recvWorkTime_2;
+extern unsigned char xdata		g_recvworkTechnology_2;
+extern unsigned char xdata		g_recvworkTemp_3;
+extern unsigned char xdata		g_recvPlateHeatGear_3;
+extern unsigned char xdata		g_recvWorkTime_3;
+extern unsigned char xdata		g_recvworkTechnology_3;
 
 void InitSysModeVariable(void);
 void SysModelCrl(void);
