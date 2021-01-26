@@ -468,6 +468,8 @@ void SysModelCrl(void)
 				{
 					g_sysType = SysModeDarkScreen;
 				} */
+
+				// g_LedOpenFlag = 0;		//待机状态炉灯熄灭
 				break;
 				
 			case SysModeSelect:											//设置待机状态
@@ -564,8 +566,9 @@ void SysModelCrl(void)
 					}
 				}
 				break;
-				
-			case SysModeWork:											//工作状态
+
+			case SysModeWork:	
+			case SYS_MODE_SMART_WORKING:								//工作状态
 				if(g_LidFlag == LID_CLOSE)								//合盖状态下，进入工作倒计时
 				{
 					if(g_waterYieldType == LackWater)					//缺水时，不进行倒计时

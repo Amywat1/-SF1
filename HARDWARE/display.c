@@ -472,6 +472,7 @@ void DispCrl(void)
 			break;
 		
 		case SysModeWork:												//¹¤×÷×´Ì¬
+		case SYS_MODE_SMART_WORKING:
 			if(g_menuNumber == MENU_1_NUM)
 			{
 				SYMBOL_FUN_BAKE = 1;

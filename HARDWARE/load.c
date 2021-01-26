@@ -1157,7 +1157,7 @@ void LoadCrl(void)
 	unsigned char s_delayCnt = 0;
 
 	/*工作或保温状态下*/
-	if((g_sysType == SysModeWork) || (g_sysType == SysModeWarm))
+	if((g_sysType == SysModeWork) || (g_sysType == SYS_MODE_SMART_WORKING) || (g_sysType == SysModeWarm))
 	{
 		/*无可恢复报警（合盖、不缺水）时正常启动工作*/
 		if((g_LidFlag == LID_CLOSE) && (g_waterYieldType == NormalType))
@@ -1380,9 +1380,10 @@ void LoadCrl(void)
 		sanReOpenFlag = OPEN_LOAD;								//开启电源板散热风扇
 	}
 
-	if(g_sysType == SysModeWork)								//工作状态下，开LED灯和摄像头散热风扇
+	if((g_sysType == SysModeWork) || (g_sysType == SYS_MODE_SMART_WORKING))		//工作或智能工作状态下，开LED灯和摄像头散热风扇
 	{
 		P_CAMERA_FAN = 1;
+		g_LedOpenFlag = 1;
 	}
 	else
 	{

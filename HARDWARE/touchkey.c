@@ -1071,6 +1071,7 @@ void TouchKeyDealSubroutine(void)
 		break;
 
 		case SysModeWork:
+		case SYS_MODE_SMART_WORKING:
 			switch(keyValue)
 			{
 				case KEY_TEMP_ADD:
@@ -1293,6 +1294,8 @@ void TouchKeyDealSubroutine(void)
 						g_sysStandbyWaitCnt = 0;			//待机等待时间清零
 
 						gU8_buzzerType = BUZ_JK_KEY;		//发出按键有效蜂鸣
+
+						SendCommand(CMD_KX_APP_REPORT_STATUS);	//立即上报状态
 					}
 					else
 					{

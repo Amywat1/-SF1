@@ -411,6 +411,9 @@ void LidScan(void)
 	static unsigned char s_lidCloseCnt = 0;			//合盖检测计数值
 	static bit			 s_lastLidState = LID_OPEN;	//上次的盖状态
 	static bit			 s_lidReCloseFlag = 0;		//重新合盖标志
+
+	static bit  s_ledOpenTemp;		//LED灯状态暂存
+	static bit  s_ledDealFlag = 0;
 	
 	BANK1_SET;
 	if(s_lastLidState != P_LID)							//若锅盖状态发生改变，则重新检测锅盖状态
@@ -428,6 +431,14 @@ void LidScan(void)
 		{
 			s_lidOpenCnt = 15;
 			g_LidFlag = LID_OPEN;
+
+			if(s_ledDealFlag == 0)
+			{
+				s_ledOpenTemp = g_LedOpenFlag;			//LED灯状态暂存
+				s_ledDealFlag = 1;
+			}
+			
+			g_LedOpenFlag = 0;		//开盖时LED灯关闭
 		}
 	}
 	else
@@ -470,6 +481,9 @@ void LidScan(void)
 					}
 				}		
 				s_lidReCloseFlag = 0;				//重新合盖已处理
+
+				s_ledDealFlag = 0;
+				g_LedOpenFlag = s_ledOpenTemp;	//重新赋值原先的LED灯状态
 			}
 		}
 	}

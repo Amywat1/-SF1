@@ -176,6 +176,8 @@ MCU_WIFI_INF_MemberDef xdata	mcuWifi;						//MCU与wifi通讯的串口信息
 
 bit g_820ASureSendFlag = 0;
 
+unsigned int g_recvMenuNum = 0;
+
 /*-----------------------------------------------------------------------------
 Description:		发送命令
 					cmd：		需要发送的命令
@@ -455,8 +457,8 @@ void DeviceDataAssignment(void)
 	mcuWifi.sendInf.u8Send_Buff[10] = g_sysType;		//系统状态
 	mcuWifi.sendInf.u8Send_Buff[11] = 0;	//菜单编码（24~31位）
 	mcuWifi.sendInf.u8Send_Buff[12] = 0;	//菜单编码（16~23位）
-	mcuWifi.sendInf.u8Send_Buff[13] = 0;	//菜单编码（8~15位）
-	mcuWifi.sendInf.u8Send_Buff[14] = 0;			//菜单编码（0~7位）
+	mcuWifi.sendInf.u8Send_Buff[13] = (unsigned char)((g_recvMenuNum & 0xff00) >> 8);
+	mcuWifi.sendInf.u8Send_Buff[14] = (unsigned char)(g_recvMenuNum & 0x00ff);			//菜单编码（0~7位）
 	mcuWifi.sendInf.u8Send_Buff[15] = 0;	//预约使能
 	mcuWifi.sendInf.u8Send_Buff[16] = 0;	//预约标识位
 	mcuWifi.sendInf.u8Send_Buff[17] = 0;	//预约时间（高8位）
@@ -468,7 +470,7 @@ void DeviceDataAssignment(void)
 	mcuWifi.sendInf.u8Send_Buff[23] = 0;	//预热保持
 	mcuWifi.sendInf.u8Send_Buff[24] = 0;	//预热保持时间
 	mcuWifi.sendInf.u8Send_Buff[25] = g_nowStepworkTemp;	//第一步上管温度
-	mcuWifi.sendInf.u8Send_Buff[26] = 0;	//第一步下管温度
+	mcuWifi.sendInf.u8Send_Buff[26] = loadCrlData.plateHeatGear;	//锅炉的档位
 	mcuWifi.sendInf.u8Send_Buff[27] = g_workTimeAll;		//第一步工作时间
 	mcuWifi.sendInf.u8Send_Buff[28] = 0;	//第二步上管温度
 	mcuWifi.sendInf.u8Send_Buff[29] = 0;	//第二步下管温度
@@ -542,7 +544,7 @@ History:			无
 -----------------------------------------------------------------------------*/
 void DeviceWorkDataUpdate(void)
 {
-	// unsigned int intDataBuff = 0;
+	unsigned int intDataBuff = 0;
 
 	// intDataBuff = mcuWifi.recvInf.u8Recv_Buff[12];
 	// intDataBuff = (intDataBuff << 8) + mcuWifi.recvInf.u8Recv_Buff[13];
@@ -574,6 +576,10 @@ void DeviceWorkDataUpdate(void)
 	g_recvworkTemp_3 		= mcuWifi.recvInf.u8Recv_Buff[30];	//赋值第三步工作温度
 	g_recvPlateHeatGear_3	= mcuWifi.recvInf.u8Recv_Buff[31];	//赋值第三步锅炉档位
 	g_recvWorkTime_3		= mcuWifi.recvInf.u8Recv_Buff[32];	//赋值第三步工作时间
+
+	intDataBuff = mcuWifi.recvInf.u8Recv_Buff[12];
+	intDataBuff = (intDataBuff << 8) + mcuWifi.recvInf.u8Recv_Buff[13];
+	g_recvMenuNum = intDataBuff;
 
 	/*第一步温度值准确性判断*/
 	if((g_recvworkTemp_1 != 0) && ((g_recvPlateHeatGear_1 != 0)))	//温度和锅炉档位都不为零，为蒸汽烤工艺
@@ -700,7 +706,7 @@ void DeviceWorkDataUpdate(void)
 		g_tempAdjEnFlag		= NO_ADJ;
 		g_timeAdjEnFlag		= NO_ADJ;
 	}
-	else if(mcuWifi.recvInf.u8Recv_Buff[13] == 0x0F)	//赋值薯条菜单
+	else if(mcuWifi.recvInf.u8Recv_Buff[13] == 0x08)	//赋值薯条菜单
 	{
 		g_menuNumber = MENU_4_NUM;
 		g_nowStepworkTemp	= g_recvworkTemp_1;
@@ -1171,23 +1177,14 @@ void RecvUart(void)
 
 					if((g_sysType == SysModeStandby) || (g_sysType == SysModeSelect))
 					{
-						// if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x30)	//仅取了最高8位判断食谱编码，不能显示详细菜单信息
-						// {
-						// 	if(mcuWifi.recvInf.u8Recv_Buff[18])	//若预热使能
-						// 	{
-						// 		ChangeMachineStatus(SYS_MODE, SYS_MODE_PRE_HEAT);	//转到预热状态
-						// 	}
-						// 	else
-						// 	{
-						// 		ChangeMachineStatus(SYS_MODE, SYS_MODE_DIY_WORKING);//转到自主烘焙工作状态
-						// 	}
-						// }
-						// else if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x00)
-						// {
-						// 	ChangeMachineStatus(SYS_MODE, SYS_MODE_SMART_WORKING);	//转到智能烘焙工作状态
-						// }
-
-						g_sysType = SysModeWork;
+						if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x10)	//仅取了最高8位判断食谱编码，不能显示详细菜单信息
+						{
+							g_sysType = SysModeWork;
+						}
+						else if(mcuWifi.recvInf.u8Recv_Buff[12] == 0x00)
+						{
+							g_sysType = SYS_MODE_SMART_WORKING;
+						}
 
 						g_enContinueErr		= NoError;		//初始无可恢复报警
 						g_waterYieldType 	= NormalType;	//默认正常抽水
